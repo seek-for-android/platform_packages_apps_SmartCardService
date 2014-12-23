@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+      package="org.simalliance.openmobileapi.service"
+      android:sharedUserId="org.simalliance.uid.openmobileapi"
+      android:versionCode="5" 
+      android:versionName="3.2.1">
+    
+    <permission android:label="SmartcardServicePermission label" 
+                android:protectionLevel="dangerous" 
+                android:name="org.simalliance.openmobileapi.SMARTCARD">
+    </permission>
+    
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+    <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="com.android.nfc.permission.NFCEE_ADMIN" />
+    
+    <application android:label="SmartcardService">
+        
+        <uses-library android:name="org.simalliance.openmobileapi" android:required="true" />
+        
+        <service android:enabled="true"
+         		android:name="org.simalliance.openmobileapi.service.SmartcardService" 
+         		android:process=":remote"
+         		android:permission="org.simalliance.openmobileapi.SMARTCARD">
+            <intent-filter>
+                <action android:name="org.simalliance.openmobileapi.service.ISmartcardService" />
+            </intent-filter>
+        </service>
+        <receiver android:name="org.simalliance.openmobileapi.service.SmartcardServiceBootCompletedBroadcastReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest> 

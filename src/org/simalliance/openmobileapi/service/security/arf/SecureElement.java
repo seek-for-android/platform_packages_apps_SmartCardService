@@ -24,11 +24,8 @@ import android.util.Log;
 import java.util.MissingResourceException;
 import org.simalliance.openmobileapi.service.IChannel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
-import org.simalliance.openmobileapi.service.ITerminal;
-import org.simalliance.openmobileapi.service.SmartcardService;
-import org.simalliance.openmobileapi.service.Util;
+import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
-import org.simalliance.openmobileapi.service.security.arf.SecureElementException;
 import org.simalliance.openmobileapi.service.security.arf.PKCS15.EF;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.AID_REF_DO;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.Hash_REF_DO;
@@ -44,7 +41,7 @@ public class SecureElement {
     // Logical channel used for SE communication (optional)
     private IChannel mArfChannel=null;
     // Handle to a built-in "Secure Element"
-    private ITerminal mTerminalHandle=null;
+    private Terminal mTerminalHandle=null;
     // Arf Controller within the SCAPI handler 
     private ArfController mArfHandler=null; 
     // Callback used during "Secure Element" communication
@@ -63,7 +60,7 @@ public class SecureElement {
      * @param arfHandler - handle to the owning arf controller object
      * @param handle - handle to the SE terminal to be accessed.
      */
-    public SecureElement(ArfController arfHandler,ITerminal handle) {
+    public SecureElement(ArfController arfHandler,Terminal handle) {
         mTerminalHandle=handle;
         mArfHandler=arfHandler;
     }
@@ -123,7 +120,6 @@ public class SecureElement {
 
     /**
      * Closes a logical channel previously allocated by the SE
-     * @param handle Handle to open channel
      */
     public void closeArfChannel() {
         try {

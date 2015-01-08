@@ -19,13 +19,16 @@
 
 package org.simalliance.openmobileapi.service;
 
+import android.content.ComponentName;
 import android.content.Context;
 
-import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
 import org.simalliance.openmobileapi.service.SmartcardService.SmartcardServiceSession;
 
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.content.pm.ResolveInfo;
+import android.os.IBinder;
 import android.os.RemoteException;
-import android.util.Log;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -39,14 +42,17 @@ import java.util.Random;
 
 
 import android.content.pm.PackageManager;
+import android.telephony.IccOpenLogicalChannelResponse;
+
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
+import org.simalliance.openmobileapi.service.ITerminalService;
 
 
 /**
  * Smartcard service base class for terminal resources.
  */
-public abstract class Terminal implements ITerminal {
+public class Terminal {
 
     /** Random number generator used for handle creation. */
     static Random mRandom = new Random();
@@ -55,13 +61,13 @@ public abstract class Terminal implements ITerminal {
 
     private final Map<Long, IChannel> mChannels = new HashMap<Long, IChannel>();
 
-    protected final String mType;
+    protected final String mName;
 
     protected int mIndex;
 
-    private boolean mHasIndexBeenSet;
+    protected ITerminalService mTerminalService;
 
-    public volatile boolean mIsConnected;
+    protected ServiceConnection mTerminalConnection;
 
     protected byte[] mSelectResponse;
 
@@ -122,10 +128,31 @@ public abstract class Terminal implements ITerminal {
         return commandName + " " + message;
     }
 
-    public Terminal(String type, Context context) {
+    public Terminal(Context context, String name, ResolveInfo info) {
         mContext = context;
-        mType = type;
-        mHasIndexBeenSet = false;
+        mName = name;
+        mTerminalConnection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+                mTerminalService = ITerminalService.Stub.asInterface(iBinder);
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName componentName) {
+                mTerminalService = null;
+            }
+        };
+
+        mContext.bindService(
+                new Intent().setClassName(info.serviceInfo.packageName,
+                        info.serviceInfo.name),
+                mTerminalConnection,
+                Context.BIND_AUTO_CREATE);
+    }
+
+    public void onSmartcardServiceShutdown() {
+        closeChannels();
+        mContext.unbindService(mTerminalConnection);
     }
 
     /**
@@ -150,18 +177,12 @@ public abstract class Terminal implements ITerminal {
      * @throws CardException if closing the channel failed.
      */
     public synchronized void closeChannel(Channel channel)
-            throws CardException {
+            throws Exception {
 
         try {
             internalCloseLogicalChannel(channel.getChannelNumber());
         } finally {
             mChannels.remove(channel.getHandle());
-            if (mIsConnected && mChannels.isEmpty()) {
-                try {
-                    internalDisconnect();
-                } catch (Exception ignore) {
-                }
-            }
         }
     }
 
@@ -192,41 +213,9 @@ public abstract class Terminal implements ITerminal {
         return mChannels.get(hChannel);
     }
 
-    @Override
     public String getName() {
-        if (mHasIndexBeenSet) {
-            return mType + mIndex;
-        } else {
-            return mType;
-        }
+        return mName;
     }
-
-    @Override
-    public String getType() {
-        return mType;
-    }
-
-    @Override
-    public final void setIndex(int index) {
-        // Index can only be set once.
-        if (!mHasIndexBeenSet) {
-            mIndex = index;
-            mHasIndexBeenSet = true;
-        }
-    }
-    /**
-     * Implements the terminal specific connect operation.
-     *
-     * @throws CardException if connecting the card failed.
-     */
-    protected abstract void internalConnect() throws CardException;
-
-    /**
-     * Implements the terminal specific disconnect operation.
-     *
-     * @throws CardException if disconnecting from the card failed.
-     */
-    protected abstract void internalDisconnect() throws CardException;
 
     /**
      * Implementation of the SELECT command.
@@ -235,7 +224,17 @@ public abstract class Terminal implements ITerminal {
      *
      * @throws Exception If the channel could not be opened.
      */
-    protected abstract int internalOpenLogicalChannel() throws Exception;
+    protected int internalOpenLogicalChannel() throws Exception {
+        SmartcardError error = new SmartcardError();
+        try {
+            OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(null,error);
+            mSelectResponse = response.getSelectResponse();
+            return response.getChannel();
+        } catch(RemoteException e) {
+            error.throwException();
+            throw e;
+        }
+    }
 
     /**
      * Implementation of the MANAGE CHANNEL open and SELECT commands.
@@ -246,8 +245,18 @@ public abstract class Terminal implements ITerminal {
      *
      * @throws Exception If the channel could not be opened.
      */
-    protected abstract int internalOpenLogicalChannel(byte[] aid)
-            throws Exception;
+    protected int internalOpenLogicalChannel(byte[] aid)
+            throws Exception {
+        SmartcardError error = new SmartcardError();
+        try {
+            OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(aid, error);
+            mSelectResponse = response.getSelectResponse();
+            return response.getChannel();
+        } catch(RemoteException e) {
+            error.throwException();
+            throw e;
+        }
+    }
 
     /**
      * Implementation of the MANAGE CHANNEL close command.
@@ -256,8 +265,15 @@ public abstract class Terminal implements ITerminal {
      *
      * @throws CardException If the channel could not be closed.
      */
-    protected abstract void internalCloseLogicalChannel(int channelNumber)
-            throws CardException;
+    protected void internalCloseLogicalChannel(int channelNumber)
+            throws CardException {
+        SmartcardError error = new SmartcardError();
+        try {
+            mTerminalService.internalCloseLogicalChannel(channelNumber, error);
+        } catch(RemoteException e) {
+            error.throwException();
+        }
+    }
 
     /**
      * Implements the terminal specific transmit operation.
@@ -266,8 +282,16 @@ public abstract class Terminal implements ITerminal {
      * @return the response APDU received.
      * @throws CardException if the transmit operation failed.
      */
-    protected abstract byte[] internalTransmit(byte[] command)
-            throws CardException;
+    protected byte[] internalTransmit(byte[] command)
+            throws CardException {
+        SmartcardError error = new SmartcardError();
+        try {
+            return mTerminalService.internalTransmit(command, error);
+        } catch(RemoteException e) {
+            error.throwException();
+            throw new CardException("Remote Exception");
+        }
+    }
 
     /**
      * Returns the ATR of the connected card or null if the ATR is not
@@ -276,7 +300,25 @@ public abstract class Terminal implements ITerminal {
      * @return the ATR of the connected card or null if the ATR is not
      *         available.
      */
-    public abstract byte[] getAtr();
+    public byte[] getAtr() {
+        try{
+            return mTerminalService.getAtr();
+        } catch (RemoteException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns <code>true</code> if a card is present; <code>false</code>
+     * otherwise.
+     *
+     * @return <code>true</code> if a card is present; <code>false</code>
+     *         otherwise.
+     * @throws CardException if card presence information is not available.
+     */
+    boolean isCardPresent() throws Exception {
+        return mTerminalService.isCardPresent();
+    }
 
     /**
      * Performs a select command on the basic channel without an AID parameter.
@@ -325,7 +367,6 @@ public abstract class Terminal implements ITerminal {
         }
     }
 
-    @Override
     public synchronized Channel openBasicChannel(
             SmartcardServiceSession session,
             ISmartcardServiceCallback callback)
@@ -340,10 +381,6 @@ public abstract class Terminal implements ITerminal {
         if (getBasicChannel() != null) {
             throw new CardException("basic channel in use");
         }
-        if (mChannels.isEmpty()) {
-            internalConnect();
-        }
-
 
         Channel basicChannel = createChannel(session, 0, callback);
         basicChannel.hasSelectedAid(false, null);
@@ -351,7 +388,6 @@ public abstract class Terminal implements ITerminal {
         return basicChannel;
     }
 
-    @Override
     public Channel openBasicChannel(
             SmartcardServiceSession session,
             byte[] aid,
@@ -367,16 +403,10 @@ public abstract class Terminal implements ITerminal {
         if (getBasicChannel() != null) {
             throw new CardException("basic channel in use");
         }
-        if (mChannels.isEmpty()) {
-            internalConnect();
-        }
 
         try {
             select(aid);
         } catch (Exception e) {
-            if (mIsConnected && mChannels.isEmpty()) {
-                internalDisconnect();
-            }
             throw e;
         }
 
@@ -388,7 +418,6 @@ public abstract class Terminal implements ITerminal {
         return basicChannel;
     }
 
-    @Override
     public synchronized Channel openLogicalChannel(
             SmartcardServiceSession session,
             ISmartcardServiceCallback callback)
@@ -397,17 +426,10 @@ public abstract class Terminal implements ITerminal {
             throw new NullPointerException("callback must not be null");
         }
 
-        if (mChannels.isEmpty()) {
-            internalConnect();
-        }
-
         int channelNumber = 0;
         try {
             channelNumber = internalOpenLogicalChannel();
         } catch (Exception e) {
-            if (mIsConnected && mChannels.isEmpty()) {
-                internalDisconnect();
-            }
             throw e;
         }
 
@@ -419,7 +441,6 @@ public abstract class Terminal implements ITerminal {
         return logicalChannel;
     }
 
-    @Override
     public synchronized Channel openLogicalChannel(
             SmartcardServiceSession session,
             byte[] aid,
@@ -432,17 +453,10 @@ public abstract class Terminal implements ITerminal {
             throw new NullPointerException("aid must not be null");
         }
 
-        if (mChannels.isEmpty()) {
-            internalConnect();
-        }
-
         int channelNumber = 0;
         try {
             channelNumber = internalOpenLogicalChannel(aid);
         } catch (Exception e) {
-            if (mIsConnected && mChannels.isEmpty()) {
-                internalDisconnect();
-            }
             throw e;
         }
 
@@ -454,9 +468,8 @@ public abstract class Terminal implements ITerminal {
         return logicalChannel;
     }
 
-    @Override
     public boolean isConnected() {
-        return mIsConnected;
+        return (mTerminalService != null);
     }
 
     /**
@@ -551,9 +564,9 @@ public abstract class Terminal implements ITerminal {
         byte[] rsp = null;
         try {
             rsp = protocolTransmit(cmd);
-        } catch (CardException e) {
+        } catch (Exception e) {
             if (commandName == null) {
-                throw e;
+                throw new CardException(e.getMessage());
             } else {
                 throw new CardException(
                         createMessage(commandName, "transmit failed"), e);
@@ -580,18 +593,15 @@ public abstract class Terminal implements ITerminal {
         return rsp;
     }
 
-    @Override
     public byte[] getSelectResponse() {
         return mSelectResponse;
     }
 
-    @Override
     public byte[] simIOExchange(int fileID, String filePath, byte[] cmd)
             throws Exception {
         throw new Exception("SIM IO error!");
     }
 
-    @Override
     public ChannelAccess setUpChannelAccess(
             PackageManager packageManager,
             byte[] aid,
@@ -606,7 +616,6 @@ public abstract class Terminal implements ITerminal {
                 aid, packageName, callback);
     }
 
-    @Override
     public synchronized boolean initializeAccessControl(
             boolean loadAtStartup,
             ISmartcardServiceCallback callback) {
@@ -616,12 +625,10 @@ public abstract class Terminal implements ITerminal {
         return mAccessControlEnforcer.initialize(loadAtStartup, callback);
     }
 
-    @Override
     public AccessControlEnforcer getAccessControlEnforcer() {
         return mAccessControlEnforcer;
     }
 
-    @Override
     public synchronized void resetAccessControl() {
         if (mAccessControlEnforcer != null) {
             mAccessControlEnforcer.reset();
@@ -680,7 +687,7 @@ public abstract class Terminal implements ITerminal {
 				            );
 					return null;
 				}
-			} catch (CardException e) {
+			} catch (Exception e) {
 				SmartcardService.setError(error, e);
 				return null;
 			}
@@ -753,7 +760,7 @@ public abstract class Terminal implements ITerminal {
 
         prefix += "  ";
 
-        writer.println(prefix + "mIsConnected:" + mIsConnected);
+        writer.println(prefix + "mIsConnected:" + (mTerminalService != null));
         writer.println();
 
         /* Dump the list of currunlty openned channels */

@@ -22,7 +22,7 @@ package org.simalliance.openmobileapi.service;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
-import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
+
 import org.simalliance.openmobileapi.service.SmartcardService.SmartcardServiceSession;
 
 import android.util.Log;
@@ -33,7 +33,6 @@ import java.util.NoSuchElementException;
 
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
-
 
 
 /**
@@ -129,6 +128,8 @@ class Channel implements IChannel, IBinder.DeathRecipient {
         try {
             terminal.closeChannel(this);
             this.mIsClosed = true;
+        } catch (Exception e) {
+            throw new CardException(e.getMessage());
         } finally {
             mBinder.unlinkToDeath(this, 0);
         }

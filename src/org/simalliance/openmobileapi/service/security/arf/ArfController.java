@@ -18,8 +18,8 @@ package org.simalliance.openmobileapi.service.security.arf;
 import android.util.Log;
 
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
-import org.simalliance.openmobileapi.service.ITerminal;
 import org.simalliance.openmobileapi.service.SmartcardService;
+import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.AccessRuleCache;
 import org.simalliance.openmobileapi.service.security.arf.SecureElement;
@@ -32,7 +32,7 @@ public class ArfController {
 
 	private AccessControlEnforcer mMaster = null;
     private AccessRuleCache mAccessRuleCache = null;
-    private ITerminal mTerminal = null;
+    private Terminal mTerminal = null;
     
     public ArfController(AccessControlEnforcer master) {
     	mMaster = master;

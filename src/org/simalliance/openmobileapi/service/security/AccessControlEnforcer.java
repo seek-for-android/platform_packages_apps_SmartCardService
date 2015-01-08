@@ -39,9 +39,8 @@ import java.util.ArrayList;
 import org.simalliance.openmobileapi.service.CardException;
 import org.simalliance.openmobileapi.service.IChannel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
-import org.simalliance.openmobileapi.service.ITerminal;
 import org.simalliance.openmobileapi.service.SmartcardService;
-import org.simalliance.openmobileapi.service.Util;
+import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.ChannelAccess.ACCESS;
 import org.simalliance.openmobileapi.service.security.ara.AraController;
 
@@ -61,7 +60,7 @@ public class AccessControlEnforcer {
     private AccessRuleCache mAccessRuleCache = null;
     private boolean mRulesRead = false;
    
-    private ITerminal mTerminal = null;
+    private Terminal mTerminal = null;
     
     private ChannelAccess mInitialChannelAccess = new ChannelAccess();
     private boolean mFullAccess = false;
@@ -70,7 +69,7 @@ public class AccessControlEnforcer {
     
     private final String ACCESS_CONTROL_ENFORCER = "Access Control Enforcer: ";
 
-    public AccessControlEnforcer( ITerminal terminal ) {
+    public AccessControlEnforcer( Terminal terminal ) {
 
     	mTerminal = terminal;
         mAccessRuleCache = new AccessRuleCache();
@@ -84,7 +83,7 @@ public class AccessControlEnforcer {
 		this.mPackageManager = packageManager;
 	}
 
-	public ITerminal getTerminal(){
+	public Terminal getTerminal(){
 		return mTerminal;
 	}
 

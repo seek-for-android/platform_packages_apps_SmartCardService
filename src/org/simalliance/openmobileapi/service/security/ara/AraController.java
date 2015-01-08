@@ -27,8 +27,7 @@ import java.util.MissingResourceException;
 import org.simalliance.openmobileapi.service.CardException;
 import org.simalliance.openmobileapi.service.IChannel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
-import org.simalliance.openmobileapi.service.ITerminal;
-import org.simalliance.openmobileapi.service.SmartcardService;
+import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.AccessRuleCache;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
@@ -43,7 +42,7 @@ public class AraController {
 	private AccessControlEnforcer mMaster = null;
     private AccessRuleCache mAccessRuleCache = null;
 
-    private ITerminal mTerminal = null;
+    private Terminal mTerminal = null;
     private AccessRuleApplet mApplet = null;
     
     
@@ -196,7 +195,7 @@ public class AraController {
     	return true;
     }
     
-    private IChannel openChannel(ITerminal terminal, byte[] aid, ISmartcardServiceCallback callback) throws Exception
+    private IChannel openChannel(Terminal terminal, byte[] aid, ISmartcardServiceCallback callback) throws Exception
     {
 
 

@@ -55,7 +55,7 @@ public interface IChannel {
      * 
      * @return the associated terminal.
      */
-    ITerminal getTerminal();
+    Terminal getTerminal();
 
     /**
      * Transmits the specified command APDU and returns the response APDU.

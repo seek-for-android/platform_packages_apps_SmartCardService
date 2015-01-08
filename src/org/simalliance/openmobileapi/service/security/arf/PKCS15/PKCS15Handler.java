@@ -26,12 +26,6 @@ import java.util.MissingResourceException;
 import org.simalliance.openmobileapi.service.IChannel;
 import org.simalliance.openmobileapi.service.security.arf.SecureElement;
 import org.simalliance.openmobileapi.service.security.arf.SecureElementException;
-import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFACMain;
-import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFACRules;
-import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFDIR;
-import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFDODF;
-import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFODF;
-import org.simalliance.openmobileapi.service.security.arf.PKCS15.PKCS15Exception;
 
 import android.os.Build;
 import android.os.SystemProperties;

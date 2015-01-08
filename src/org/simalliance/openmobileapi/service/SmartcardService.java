@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -42,10 +43,13 @@ import org.simalliance.openmobileapi.service.security.ChannelAccess;
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
@@ -98,15 +102,8 @@ public final class SmartcardService extends Service {
      * For now this list is setup in onCreate(), not changed later and therefore
      * not synchronized.
      */
-    private Map<String, ITerminal> mTerminals
-        = new TreeMap<String, ITerminal>();
-
-    /**
-     * For now this list is setup in onCreate(), not changed later and therefore
-     * not synchronized.
-     */
-    private Map<String, ITerminal> mAddOnTerminals
-        = new TreeMap<String, ITerminal>();
+    private Map<String, Terminal> mTerminals
+        = new TreeMap<String, Terminal>();
 
     /* Broadcast receivers */
     private BroadcastReceiver mSimReceiver;
@@ -169,21 +166,12 @@ public final class SmartcardService extends Service {
                     + "for userdebug and eng build");
         } else {
             writer.println(prefix + "List of terminals:");
-            for (ITerminal terminal : mTerminals.values()) {
+            for (Terminal terminal : mTerminals.values()) {
                 writer.println(prefix + "  " + terminal.getName());
             }
             writer.println();
 
-            writer.println(prefix + "List of add-on terminals:");
-            for (ITerminal terminal : mAddOnTerminals.values()) {
-                writer.println(prefix + "  " + terminal.getName());
-            }
-            writer.println();
-
-            for (ITerminal terminal : mTerminals.values()) {
-                terminal.dump(writer, prefix);
-            }
-            for (ITerminal terminal : mAddOnTerminals.values()) {
+            for (Terminal terminal : mTerminals.values()) {
                 terminal.dump(writer, prefix);
             }
         }
@@ -342,10 +330,10 @@ public final class SmartcardService extends Service {
             };
         }
 
-        Collection<ITerminal> col = mTerminals.values();
-        Iterator<ITerminal> iter = col.iterator();
+        Collection<Terminal> col = mTerminals.values();
+        Iterator<Terminal> iter = col.iterator();
         while (iter.hasNext()) {
-            ITerminal terminal = iter.next();
+            Terminal terminal = iter.next();
             if (terminal == null) {
                 
                 continue;
@@ -355,39 +343,7 @@ public final class SmartcardService extends Service {
                 boolean isCardPresent = false;
                 try {
                     isCardPresent = terminal.isCardPresent();
-                } catch (CardException e) {
-                    isCardPresent = false;
-                    
-                }
-
-                if (isCardPresent) {
-                    Log.i(_TAG,
-                            "Initializing Access Control for "
-                                    + terminal.getName());
-                    if (reset) {
-                        terminal.resetAccessControl();
-                    }
-                    result &= terminal.initializeAccessControl(true, callback);
-                } else {
-                    Log.i(_TAG, "NOT initializing Access Control for "
-                            + terminal.getName() + " SE not present.");
-                }
-            }
-        }
-        col = this.mAddOnTerminals.values();
-        iter = col.iterator();
-        while (iter.hasNext()) {
-            ITerminal terminal = iter.next();
-            if (terminal == null) {
-                
-                continue;
-            }
-            
-            if (se == null || terminal.getName().startsWith(se)) {
-                boolean isCardPresent = false;
-                try {
-                    isCardPresent = terminal.isCardPresent();
-                } catch (CardException e) {
+                } catch (Exception e) {
                     isCardPresent = false;
                     
                 }
@@ -411,11 +367,8 @@ public final class SmartcardService extends Service {
 
     public void onDestroy() {
         Log.v(_TAG, " smartcard service onDestroy ...");
-        for (ITerminal terminal : mTerminals.values()) {
-            terminal.closeChannels();
-        }
-        for (ITerminal terminal : mAddOnTerminals.values()) {
-            terminal.closeChannels();
+        for (Terminal terminal : mTerminals.values()) {
+            terminal.onSmartcardServiceShutdown();
         }
 
         // Cancel the inialization background task if still running
@@ -436,113 +389,71 @@ public final class SmartcardService extends Service {
 
     }
 
-    private ITerminal getTerminal(String reader, SmartcardError error) {
+    private Terminal getTerminal(String reader, SmartcardError error) {
         if (reader == null) {
             setError(error, NullPointerException.class,
                     "reader must not be null");
             return null;
         }
-        ITerminal terminal = mTerminals.get(reader);
+        Terminal terminal = mTerminals.get(reader);
         if (terminal == null) {
-            terminal = mAddOnTerminals.get(reader);
-            if (terminal == null) {
-                setError(error, IllegalArgumentException.class,
-                        "unknown reader");
-            }
+            setError(error, IllegalArgumentException.class,
+                    "unknown reader");
         }
         return terminal;
     }
 
     private void createTerminals() {
-        createBuildinTerminals();
-        createAddonTerminals();
+
+        // Find Terminal packages
+        PackageManager pm = getApplicationContext().getPackageManager();
+        List<ResolveInfo> terminallist = pm.queryIntentServices(
+                new Intent("org.simalliance.openmobileapi.TERMINAL_DISCOVERY"),
+                PackageManager.GET_INTENT_FILTERS);
+        Log.e(_TAG, "Numer of terminals: " + terminallist.size());
+        for (ResolveInfo info : terminallist) {
+            try {
+                String packageName = info.serviceInfo.applicationInfo.packageName;
+                String sourceDir = getPackageManager().getApplicationInfo(packageName, 0).sourceDir;
+                DexClassLoader cl = new DexClassLoader(
+                            sourceDir,
+                            getCacheDir().getAbsolutePath(),
+                            null,
+                            ClassLoader.getSystemClassLoader().getSystemClassLoader().getParent());
+				String terminalType = (String) cl
+                        .loadClass(info.serviceInfo.name)
+                        .getMethod("getType", (Class<?>[]) null)
+                        .invoke(null, (Object[]) null);
+                Log.v(_TAG, "Terminal type: " + terminalType);
+                String name = terminalType + getIndexForTerminal(terminalType);
+                Log.d(_TAG, "Name: " + name);
+                mTerminals.put(name, new Terminal(SmartcardService.this, name, info));
+            } catch (Throwable t) {
+                Log.e(_TAG, Thread.currentThread().getName()
+                        + " CreateReaders Error: "
+                        + ((t.getMessage() != null) ? t.getMessage()
+                        : "unknown"));
+            }
+        }
+        Log.e(_TAG, "End of Creating BuildinTerminals");
     }
 
     private String[] createTerminalNamesList() {
         Set<String> names = mTerminals.keySet();
         ArrayList<String> list = new ArrayList<String>(names);
 
-        names = mAddOnTerminals.keySet();
-        for (String name : names) {
-            list.add(name);
-        }
-
         return list.toArray(new String[list.size()]);
-    }
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private void createBuildinTerminals() {
-        Class[] types = new Class[] {
-                Context.class
-            };
-        Object[] args = new Object[] {
-                this
-            };
-        Object[] classes = getBuildinTerminalClasses();
-        for (Object clazzO : classes) {
-            try {
-                Class clazz = (Class) clazzO;
-                Constructor constr = clazz.getDeclaredConstructor(types);
-                ITerminal terminal = (ITerminal) constr.newInstance(args);
-                terminal.setIndex(getIndexForTerminal(terminal));
-                mTerminals.put(terminal.getName(), terminal);
-                Log.v(_TAG, Thread.currentThread().getName() + " adding "
-                        + terminal.getName());
-            } catch (Throwable t) {
-                Log.e(_TAG, Thread.currentThread().getName()
-                        + " CreateReaders Error: "
-                        + ((t.getMessage() != null) ? t.getMessage()
-                                : "unknown"));
-            }
-        }
-    }
-
-    private void createAddonTerminals() {
-        String[] packageNames = AddonTerminal.getPackageNames(this);
-        for (String packageName : packageNames) {
-            try {
-                String apkName = getPackageManager().getApplicationInfo(
-                        packageName, 0).sourceDir;
-                DexFile dexFile = new DexFile(apkName);
-                Enumeration<String> classFileNames = dexFile.entries();
-                while (classFileNames.hasMoreElements()) {
-                    String className = classFileNames.nextElement();
-                    if (className.endsWith("Terminal")) {
-                        PathClassLoader cl = new PathClassLoader(
-                                apkName, ClassLoader.getSystemClassLoader());
-                        String terminalType = (String) cl
-                                .loadClass(className)
-                                .getMethod("getType", (Class<?>[]) null)
-                                .invoke(null, (Object[]) null);
-                        ITerminal terminal = new AddonTerminal(
-                                this,
-                                terminalType,
-                                packageName,
-                                className);
-                        terminal.setIndex(getIndexForTerminal(terminal));
-                        mAddOnTerminals.put(terminal.getName(), terminal);
-                        Log.v(_TAG, Thread.currentThread().getName()
-                                + " adding " + terminal.getName());
-                    }
-                }
-            } catch (Throwable t) {
-                Log.e(_TAG, Thread.currentThread().getName()
-                        + " CreateReaders Error: "
-                        + ((t.getMessage() != null) ? t.getMessage()
-                                : "unknown"));
-            }
-        }
     }
 
     /**
      * Computes the index that should be assigned to each terminal.
      *
-     * @param terminal The terminal to compute the index for.
+     * @param type of the terminal to compute the index for.
      *
      * @return The index that shall be assigned to the given terminal.
      */
-    private int getIndexForTerminal(ITerminal terminal) {
-        return getTerminalsOfType(terminal.getType()).length + 1;
+    private int getIndexForTerminal(String type) {
+        return getTerminalsOfType(type).length + 1;
     }
 
     /**
@@ -552,17 +463,12 @@ public final class SmartcardService extends Service {
      *
      * @return An array of terminals of the specified type.
      */
-    private ITerminal[] getTerminalsOfType(String terminalType) {
-        ArrayList<ITerminal> terminals = new ArrayList<ITerminal>();
+    private Terminal[] getTerminalsOfType(String terminalType) {
+        ArrayList<Terminal> terminals = new ArrayList<Terminal>();
         int index = 1;
         String name = terminalType + index;
-        while (mTerminals.containsKey(name)
-                || mAddOnTerminals.containsKey(name)) {
-            if (mTerminals.containsKey(name)) {
-                terminals.add(mTerminals.get(name));
-            } else {
-                terminals.add(mAddOnTerminals.get(name));
-            }
+        while (mTerminals.containsKey(name)) {
+            terminals.add(mTerminals.get(name));
             index++;
             name = terminalType + index;
         }
@@ -670,7 +576,7 @@ public final class SmartcardService extends Service {
                             "callback must not be null");
                     return null;
                 }
-                ITerminal terminal = getTerminal(reader, error);
+                Terminal terminal = getTerminal(reader, error);
                 if (terminal == null) {
                     return null;
                 }

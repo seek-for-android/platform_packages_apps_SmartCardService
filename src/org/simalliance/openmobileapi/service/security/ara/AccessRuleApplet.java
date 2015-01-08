@@ -18,15 +18,12 @@
 package org.simalliance.openmobileapi.service.security.ara;
 
 
-import android.util.Log;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.AccessControlException;
 
 import org.simalliance.openmobileapi.service.CardException;
 import org.simalliance.openmobileapi.service.IChannel;
-import org.simalliance.openmobileapi.service.Util;
 import org.simalliance.openmobileapi.service.security.CommandApdu;
 import org.simalliance.openmobileapi.service.security.ResponseApdu;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.BerTlv;

@@ -473,7 +473,7 @@ public final class SmartcardService extends Service {
             name = terminalType + index;
         }
 
-        return terminals.toArray(new ITerminal[terminals.size()]);
+        return terminals.toArray(new Terminal[terminals.size()]);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

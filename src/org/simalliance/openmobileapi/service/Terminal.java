@@ -658,18 +658,18 @@ public class Terminal {
 
         @Override
         public String getName(SmartcardError error) throws RemoteException {
-            SmartcardService.clearError(error);
+            Util.clearError(error);
             return Terminal.this.getName();
         }
 
         @Override
         public boolean isSecureElementPresent(SmartcardError error)
                 throws RemoteException {
-            SmartcardService.clearError(error);
+            Util.clearError(error);
             try {
                 return Terminal.this.isCardPresent();
             } catch (Exception e) {
-                SmartcardService.setError(error, e);
+                Util.setError(error, e);
             }
             return false;
         }
@@ -677,17 +677,17 @@ public class Terminal {
         @Override
         public ISmartcardServiceSession openSession(SmartcardError error)
                 throws RemoteException {
-            SmartcardService.clearError(error);
+            Util.clearError(error);
             try {
                 if (!Terminal.this.isCardPresent()) {
-                    SmartcardService.setError(
+                    Util.setError(
                             error,
                             new IOException("Secure Element is not presented.")
                             );
                     return null;
                 }
             } catch (Exception e) {
-                SmartcardService.setError(error, e);
+                Util.setError(error, e);
                 return null;
             }
 
@@ -696,13 +696,12 @@ public class Terminal {
                     mService.initializeAccessControl(
                             Terminal.this.getName(), null);
                 } catch (Exception e) {
-                    SmartcardService.setError(error, e);
+                    Util.setError(error, e);
                     // Reader.openSession() will throw an IOException when
                     // session is null
                     return null;
                 }
-                SmartcardServiceSession session
-                    = mService.new SmartcardServiceSession(this);
+                SmartcardServiceSession session = mService.new SmartcardServiceSession(this);
                 mSessions.add(session);
 
                 return session;
@@ -712,7 +711,7 @@ public class Terminal {
         @Override
         public void closeSessions(SmartcardError error) throws RemoteException {
 
-            SmartcardService.clearError(error);
+            Util.clearError(error);
             synchronized (mLock) {
                 for (SmartcardServiceSession session : mSessions) {
                     if (session != null && !session.isClosed()) {

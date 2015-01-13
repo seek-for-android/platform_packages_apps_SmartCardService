@@ -81,25 +81,6 @@ public final class SmartcardService extends Service {
     public static final String _eSE_TERMINAL = "eSE";
     public static final String _SD_TERMINAL = "SD";
 
-    static void clearError(SmartcardError error) {
-        if (error != null) {
-            error.clear();
-        }
-    }
-
-    @SuppressWarnings({ "rawtypes" })
-    static void setError(SmartcardError error, Class clazz, String message) {
-        if (error != null) {
-            error.setError(clazz, message);
-        }
-    }
-
-    static void setError(SmartcardError error, Exception e) {
-        if (error != null) {
-            error.setError(e.getClass(), e.getMessage());
-        }
-    }
-
     /**
      * For now this list is setup in onCreate(), not changed later and therefore
      * not synchronized.
@@ -393,13 +374,13 @@ public final class SmartcardService extends Service {
 
     private Terminal getTerminal(String reader, SmartcardError error) {
         if (reader == null) {
-            setError(error, NullPointerException.class,
+            Util.setError(error, NullPointerException.class,
                     "reader must not be null");
             return null;
         }
         Terminal terminal = mTerminals.get(reader);
         if (terminal == null) {
-            setError(error, IllegalArgumentException.class,
+            Util.setError(error, IllegalArgumentException.class,
                     "unknown reader");
         }
         return terminal;
@@ -547,7 +528,7 @@ public final class SmartcardService extends Service {
         @Override
         public String[] getReaders(SmartcardError error)
                 throws RemoteException {
-            clearError(error);
+            Util.clearError(error);
             Log.v(_TAG, "getReaders()");
             return createTerminalNamesList();
         }
@@ -555,13 +536,13 @@ public final class SmartcardService extends Service {
         @Override
         public ISmartcardServiceReader getReader(String reader,
                 SmartcardError error) throws RemoteException {
-            clearError(error);
+            Util.clearError(error);
             Terminal terminal = (Terminal) getTerminal(reader, error);
             if (terminal != null) {
                 return terminal.new SmartcardServiceReader(
                         SmartcardService.this);
             }
-            setError(error, IllegalArgumentException.class,
+            Util.setError(error, IllegalArgumentException.class,
                     "invalid reader name");
             return null;
         }
@@ -571,10 +552,10 @@ public final class SmartcardService extends Service {
                 byte[] aid, String[] packageNames,
                 ISmartcardServiceCallback callback, SmartcardError error)
                 throws RemoteException {
-            clearError(error);
+            Util.clearError(error);
             try {
                 if (callback == null) {
-                    setError(error, NullPointerException.class,
+                    Util.setError(error, NullPointerException.class,
                             "callback must not be null");
                     return null;
                 }
@@ -586,12 +567,12 @@ public final class SmartcardService extends Service {
                     aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
                 }
                 if (aid.length < 5 || aid.length > 16) {
-                    setError(error, IllegalArgumentException.class,
+                    Util.setError(error, IllegalArgumentException.class,
                             "AID out of range");
                     return null;
                 }
                 if (packageNames == null || packageNames.length == 0) {
-                    setError(error, IllegalArgumentException.class,
+                    Util.setError(error, IllegalArgumentException.class,
                             "process names not specified");
                     return null;
                 }
@@ -605,7 +586,7 @@ public final class SmartcardService extends Service {
                 ac.initialize(true, callback);
                 return ac.isNFCEventAllowed(aid, packageNames, callback);
             } catch (Exception e) {
-                setError(error, e);
+                Util.setError(error, e);
                 Log.v(_TAG, "isNFCEventAllowed Exception: " + e.getMessage());
                 return null;
             }
@@ -645,14 +626,14 @@ public final class SmartcardService extends Service {
 
         @Override
         public void close(SmartcardError error) throws RemoteException {
-            clearError(error);
+            Util.clearError(error);
             if (mReader == null) {
                 return;
             }
             try {
                 mReader.closeSession(this);
             } catch (CardException e) {
-                setError(error, e);
+                Util.setError(error, e);
             }
         }
 
@@ -703,19 +684,19 @@ public final class SmartcardService extends Service {
         public ISmartcardServiceChannel openBasicChannelAid(byte[] aid,
                 ISmartcardServiceCallback callback, SmartcardError error)
                 throws RemoteException {
-            clearError(error);
+            Util.clearError(error);
             if (isClosed()) {
-                setError(error, IllegalStateException.class,
+                Util.setError(error, IllegalStateException.class,
                         "session is closed");
                 return null;
             }
             if (callback == null) {
-                setError(error, IllegalStateException.class,
+                Util.setError(error, IllegalStateException.class,
                         "callback must not be null");
                 return null;
             }
             if (mReader == null) {
-                setError(error, IllegalStateException.class,
+                Util.setError(error, IllegalStateException.class,
                         "reader must not be null");
                 return null;
             }
@@ -728,7 +709,7 @@ public final class SmartcardService extends Service {
                 }
 
                 if (aid.length < 5 || aid.length > 16) {
-                    setError(error, IllegalArgumentException.class,
+                    Util.setError(error, IllegalArgumentException.class,
                             "AID out of range");
                     return null;
                 }
@@ -769,7 +750,7 @@ public final class SmartcardService extends Service {
                 return basicChannel;
 
             } catch (Exception e) {
-                setError(error, e);
+                Util.setError(error, e);
                 Log.v(_TAG, "OpenBasicChannel Exception: " + e.getMessage());
                 return null;
             }
@@ -779,21 +760,21 @@ public final class SmartcardService extends Service {
         public ISmartcardServiceChannel openLogicalChannel(byte[] aid,
                 ISmartcardServiceCallback callback, SmartcardError error)
                 throws RemoteException {
-            clearError(error);
+            Util.clearError(error);
 
             if (isClosed()) {
-                setError(error, IllegalStateException.class,
+                Util.setError(error, IllegalStateException.class,
                         "session is closed");
                 return null;
             }
 
             if (callback == null) {
-                setError(error, IllegalStateException.class,
+                Util.setError(error, IllegalStateException.class,
                         "callback must not be null");
                 return null;
             }
             if (mReader == null) {
-                setError(error, IllegalStateException.class,
+                Util.setError(error, IllegalStateException.class,
                         "reader must not be null");
                 return null;
             }
@@ -806,7 +787,7 @@ public final class SmartcardService extends Service {
                 }
 
                 if (aid.length < 5 || aid.length > 16) {
-                    setError(error, IllegalArgumentException.class,
+                    Util.setError(error, IllegalArgumentException.class,
                             "AID out of range");
                     return null;
                 }
@@ -842,7 +823,7 @@ public final class SmartcardService extends Service {
                 mChannels.add(channel);
                 return logicalChannel;
             } catch (Exception e) {
-                setError(error, e);
+                Util.setError(error, e);
                 Log.v(_TAG, "OpenLogicalChannel Exception: " + e.getMessage());
                 return null;
             }

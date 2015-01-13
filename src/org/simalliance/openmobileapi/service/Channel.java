@@ -395,11 +395,11 @@ class Channel implements IChannel, IBinder.DeathRecipient {
         @Override
         public void close(SmartcardError error) throws RemoteException {
 
-            SmartcardService.clearError(error);
+            Util.clearError(error);
             try {
                 Channel.this.close();
             } catch (Exception e) {
-                SmartcardService.setError(error, e);
+                Util.setError(error, e);
             } finally {
                 if (mSession != null) {
                     mSession.removeChannel(Channel.this);
@@ -437,11 +437,11 @@ class Channel implements IChannel, IBinder.DeathRecipient {
         @Override
         public byte[] transmit(byte[] command, SmartcardError error)
                 throws RemoteException {
-            SmartcardService.clearError(error);
+            Util.clearError(error);
 
             try {
                 if (isClosed()) {
-                    SmartcardService.setError(
+                    Util.setError(
                             error,
                             IllegalStateException.class,
                             "channel is closed");
@@ -449,14 +449,14 @@ class Channel implements IChannel, IBinder.DeathRecipient {
                 }
 
                 if (command == null) {
-                    SmartcardService.setError(
+                    Util.setError(
                             error,
                             IllegalArgumentException.class,
                             "command must not be null");
                     return null;
                 }
                 if (command.length < 4) {
-                    SmartcardService.setError(
+                    Util.setError(
                             error,
                             IllegalArgumentException.class,
                             "command must have at least 4 bytes");
@@ -473,7 +473,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
                 Log.v(SmartcardService._TAG, "transmit Exception: "
                         + e.getMessage()
                         + " (Command: " + Util.bytesToString(command) + ")");
-                SmartcardService.setError(error, e);
+                Util.setError(error, e);
                 return null;
             }
         }
@@ -481,11 +481,11 @@ class Channel implements IChannel, IBinder.DeathRecipient {
         @Override
         public boolean selectNext(SmartcardError error)
                 throws RemoteException {
-            SmartcardService.clearError(error);
+            Util.clearError(error);
 
             try {
                 if (isClosed()) {
-                    SmartcardService.setError(
+                    Util.setError(
                             error,
                             IllegalStateException.class,
                             "channel is closed");
@@ -497,7 +497,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
                 boolean response = Channel.this.selectNext();
                 return response;
             } catch (Exception e) {
-                SmartcardService.setError(error, e);
+                Util.setError(error, e);
                 return false;
             }
         }

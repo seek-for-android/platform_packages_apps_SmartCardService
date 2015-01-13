@@ -62,4 +62,22 @@ public class Util {
             buffer.append(prefix+Integer.toHexString(0x100+(array[ind] & 0xFF)).substring(1));
         return buffer.toString();
     }
+
+    public static void clearError(SmartcardError error) {
+        if (error != null) {
+            error.clear();
+        }
+    }
+
+    public static void setError(SmartcardError error, Class clazz, String message) {
+        if (error != null) {
+            error.setError(clazz, message);
+        }
+    }
+
+    public static void setError(SmartcardError error, Exception e) {
+        if (error != null) {
+            error.setError(e.getClass(), e.getMessage());
+        }
+    }
 }

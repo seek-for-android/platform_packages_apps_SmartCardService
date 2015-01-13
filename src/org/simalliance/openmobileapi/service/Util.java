@@ -19,6 +19,11 @@
 
 package org.simalliance.openmobileapi.service;
 
+import android.content.Context;
+import android.content.pm.PackageManager;
+
+import java.security.AccessControlException;
+
 public class Util {
 
     public static final byte END = -1;
@@ -79,5 +84,30 @@ public class Util {
         if (error != null) {
             error.setError(e.getClass(), e.getMessage());
         }
+    }
+
+    /**
+     * Get package name from the user id.
+     *
+     * This shall fix the problem the issue that process name != package name
+     * due to anndroid:process attribute in manifest file.
+     *
+     * But this call is not really secure either since a uid can be shared
+     * between one and more apks
+     *
+     * @param context
+     * @param uid
+     * @return The first package name associated with this uid.
+     */
+    public static String getPackageNameFromCallingUid(Context context, int uid) {
+        PackageManager packageManager = context.getPackageManager();
+        if (packageManager != null) {
+            String packageName[] = packageManager.getPackagesForUid(uid);
+            if (packageName != null && packageName.length > 0) {
+                return packageName[0];
+            }
+        }
+        throw new AccessControlException(
+                "Caller PackageName can not be determined");
     }
 }

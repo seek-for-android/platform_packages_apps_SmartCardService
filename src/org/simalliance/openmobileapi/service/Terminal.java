@@ -42,7 +42,6 @@ import java.util.Random;
 
 
 import android.content.pm.PackageManager;
-import android.telephony.IccOpenLogicalChannelResponse;
 
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;

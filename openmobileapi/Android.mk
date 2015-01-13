@@ -20,6 +20,7 @@ LOCAL_SRC_FILES += \
       src/org/simalliance/openmobileapi/service/ISmartcardServiceReader.aidl \
       src/org/simalliance/openmobileapi/service/ISmartcardServiceChannel.aidl \
       src/org/simalliance/openmobileapi/service/ISmartcardServiceSession.aidl \
+      src/org/simalliance/openmobileapi/service/ITerminalService.aidl \
       src/org/simalliance/openmobileapi/service/ISmartcardService.aidl
 
 LOCAL_AIDL_INCLUDES := packages/apps/SmartCardService/openmobileapi/src/org/simalliance/openmobileapi/service

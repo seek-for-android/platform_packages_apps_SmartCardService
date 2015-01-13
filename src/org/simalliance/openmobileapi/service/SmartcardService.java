@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+
+import org.simalliance.openmobileapi.SERecognizerByAID;
 import org.simalliance.openmobileapi.service.Channel.SmartcardServiceChannel;
 import org.simalliance.openmobileapi.service.Terminal.SmartcardServiceReader;
 

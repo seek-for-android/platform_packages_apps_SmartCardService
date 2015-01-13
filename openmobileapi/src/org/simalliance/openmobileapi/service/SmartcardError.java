@@ -148,4 +148,9 @@ public class SmartcardError implements Parcelable {
         out.writeString(mClazz);
         out.writeString(mMessage);
     }
+
+    public String getMessage() {
+        return mMessage;
+    }
+
 }

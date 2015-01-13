@@ -21,8 +21,8 @@ package org.simalliance.openmobileapi.service;
 
 public class Util {
 
-	public static final byte END = -1;
-	
+    public static final byte END = -1;
+
     public static byte[] mergeBytes(byte[] array1, byte[] array2) {
         byte[] data = new byte[array1.length + array2.length];
         int i = 0;
@@ -40,8 +40,8 @@ public class Util {
     }
 
     public static String bytesToString(byte[] bytes) {
-    	if(bytes == null)
-    		return "";
+        if(bytes == null)
+            return "";
         StringBuffer sb = new StringBuffer();
         for (byte b : bytes) {
             sb.append(String.format("%02x ", b & 0xFF));
@@ -53,16 +53,13 @@ public class Util {
         return str;
     }
 
-    public static String bytesToString(byte[] array,int offset,int length,
-					                String prefix) {
-	if (array==null) return null;
-	if (length==-1) length=array.length-offset;
+    public static String bytesToString(byte[] array,int offset,int length, String prefix) {
+        if (array==null) return null;
+        if (length==-1) length=array.length-offset;
 
-	StringBuffer buffer=new StringBuffer();
-	for (int ind=offset;ind<offset+length;ind++)
-	    buffer.append(prefix+Integer.toHexString(
-					   0x100+(array[ind] & 0xFF)).substring(1));
-	return buffer.toString();
-    }    
-    
+        StringBuffer buffer=new StringBuffer();
+        for (int ind=offset;ind<offset+length;ind++)
+            buffer.append(prefix+Integer.toHexString(0x100+(array[ind] & 0xFF)).substring(1));
+        return buffer.toString();
+    }
 }

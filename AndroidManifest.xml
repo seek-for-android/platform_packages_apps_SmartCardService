@@ -9,7 +9,8 @@
                 android:protectionLevel="dangerous" 
                 android:name="org.simalliance.openmobileapi.SMARTCARD">
     </permission>
-    
+
+    <uses-permission android:name="org.simalliance.openmobileapi.SMARTCARD"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     
     <application android:label="SmartcardService">

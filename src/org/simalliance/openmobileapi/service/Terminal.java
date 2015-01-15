@@ -598,7 +598,12 @@ public class Terminal {
 
     public byte[] simIOExchange(int fileID, String filePath, byte[] cmd)
             throws Exception {
-        throw new Exception("SIM IO error!");
+        SmartcardError error = new SmartcardError();
+        try {
+            return mTerminalService.simIOExchange(fileID, filePath, cmd, error);
+        } catch (RemoteException e) {
+            throw new Exception("SIM IO error!");
+        }
     }
 
     public ChannelAccess setUpChannelAccess(

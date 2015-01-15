@@ -80,5 +80,16 @@ interface ITerminalService {
      * @throws CardException if card presence information is not available.
      */
     boolean isCardPresent();
-     
+
+    /**
+     * Exchanges APDU (SELECT, READ/WRITE) to the  given EF by File ID and file
+     * path via iccIO.
+     *
+     * The given command is checked and might be rejected.
+     *
+     * @param filePath
+     * @param cmd
+     * @return
+     */
+    byte[] simIOExchange(in int fileID, in String filePath, in byte[] cmd, out SmartcardError error);
 }

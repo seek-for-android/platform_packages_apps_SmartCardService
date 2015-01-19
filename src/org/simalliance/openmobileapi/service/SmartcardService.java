@@ -19,37 +19,12 @@
 
 package org.simalliance.openmobileapi.service;
 
-import java.io.FileDescriptor;
-import java.io.PrintWriter;
-import java.lang.reflect.Constructor;
-import java.security.AccessControlException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-
-
-import org.simalliance.openmobileapi.SERecognizerByAID;
-import org.simalliance.openmobileapi.service.Channel.SmartcardServiceChannel;
-import org.simalliance.openmobileapi.service.Terminal.SmartcardServiceReader;
-
-import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
-import org.simalliance.openmobileapi.service.security.ChannelAccess;
-
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.AsyncTask;
@@ -63,11 +38,26 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
+
+import org.simalliance.openmobileapi.service.Channel.SmartcardServiceChannel;
+import org.simalliance.openmobileapi.service.Terminal.SmartcardServiceReader;
+import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
+import org.simalliance.openmobileapi.service.security.ChannelAccess;
+
+import java.io.FileDescriptor;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
-import dalvik.system.PathClassLoader;
-
-
 
 /**
  * The smartcard service is setup with privileges to access smart card hardware.
@@ -387,13 +377,12 @@ public final class SmartcardService extends Service {
     }
 
     private void createTerminals() {
-
         // Find Terminal packages
         PackageManager pm = getApplicationContext().getPackageManager();
         List<ResolveInfo> terminallist = pm.queryIntentServices(
                 new Intent("org.simalliance.openmobileapi.TERMINAL_DISCOVERY"),
                 PackageManager.GET_INTENT_FILTERS);
-        Log.e(_TAG, "Numer of terminals: " + terminallist.size());
+        Log.d(_TAG, "Found " + terminallist.size() + " terminals.");
         for (ResolveInfo info : terminallist) {
             try {
                 String packageName = info.serviceInfo.applicationInfo.packageName;
@@ -403,13 +392,12 @@ public final class SmartcardService extends Service {
                             getCacheDir().getAbsolutePath(),
                             null,
                             ClassLoader.getSystemClassLoader().getSystemClassLoader().getParent());
-				String terminalType = (String) cl
+                String terminalType = (String) cl
                         .loadClass(info.serviceInfo.name)
                         .getMethod("getType", (Class<?>[]) null)
                         .invoke(null, (Object[]) null);
-                Log.v(_TAG, "Terminal type: " + terminalType);
                 String name = terminalType + getIndexForTerminal(terminalType);
-                Log.d(_TAG, "Name: " + name);
+                Log.d(_TAG, "Adding terminal " + name);
                 mTerminals.put(name, new Terminal(SmartcardService.this, name, info));
             } catch (Throwable t) {
                 Log.e(_TAG, Thread.currentThread().getName()
@@ -418,7 +406,6 @@ public final class SmartcardService extends Service {
                         : "unknown"));
             }
         }
-        Log.e(_TAG, "End of Creating BuildinTerminals");
     }
 
     private String[] createTerminalNamesList() {
@@ -457,42 +444,6 @@ public final class SmartcardService extends Service {
         }
 
         return terminals.toArray(new Terminal[terminals.size()]);
-    }
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private Object[] getBuildinTerminalClasses() {
-        ArrayList classes = new ArrayList();
-        try {
-            String packageName = "org.simalliance.openmobileapi.service";
-            String apkName = getPackageManager().getApplicationInfo(
-                    packageName, 0).sourceDir;
-            DexClassLoader dexClassLoader = new DexClassLoader(apkName,
-                    getApplicationContext().getFilesDir().getAbsolutePath(),
-                    null, getClass().getClassLoader());
-
-            Class terminalClass = Class.forName(
-                    "org.simalliance.openmobileapi.service.Terminal", true,
-                    dexClassLoader);
-            if (terminalClass == null) {
-                return classes.toArray();
-            }
-
-            DexFile dexFile = new DexFile(apkName);
-            Enumeration<String> classFileNames = dexFile.entries();
-            while (classFileNames.hasMoreElements()) {
-                String className = classFileNames.nextElement();
-                Class clazz = Class.forName(className);
-                Class superClass = clazz.getSuperclass();
-                if (superClass != null
-                        && superClass.equals(terminalClass)
-                        && !className.equals("org.simalliance.openmobileapi.service.AddonTerminal")) {
-                    classes.add(clazz);
-                }
-            }
-        } catch (Throwable exp) {
-            // nothing to to
-        }
-        return classes.toArray();
     }
 
     /**

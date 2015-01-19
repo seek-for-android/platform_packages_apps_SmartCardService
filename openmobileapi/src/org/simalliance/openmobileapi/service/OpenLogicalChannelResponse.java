@@ -28,7 +28,7 @@ public class OpenLogicalChannelResponse implements Parcelable {
 
     private OpenLogicalChannelResponse(Parcel in) {
         mChannelNumber = in.readInt();
-        in.readByteArray(mSelectResponse);
+        mSelectResponse = in.createByteArray();
     }
 
     public int getChannel() {

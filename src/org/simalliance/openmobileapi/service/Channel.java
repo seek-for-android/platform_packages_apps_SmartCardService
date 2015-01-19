@@ -92,7 +92,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
     }
 
     public synchronized void close() throws CardException {
-        
+
 
         Terminal terminal = getTerminal();
         if (terminal == null) {

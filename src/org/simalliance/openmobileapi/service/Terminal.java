@@ -277,6 +277,7 @@ public class Terminal {
         SmartcardError error = new SmartcardError();
         try {
             mTerminalService.internalCloseLogicalChannel(channelNumber, error);
+            error.throwException();
         } catch(RemoteException e) {
             error.throwException();
         }
@@ -293,7 +294,9 @@ public class Terminal {
             throws CardException {
         SmartcardError error = new SmartcardError();
         try {
-            return mTerminalService.internalTransmit(command, error);
+            byte[] response = mTerminalService.internalTransmit(command, error);
+            error.throwException();
+            return response;
         } catch(RemoteException e) {
             error.throwException();
             throw new CardException("Remote Exception");

@@ -18,4 +18,12 @@
  */
 package org.simalliance.openmobileapi.service;
 
-parcelable OpenLogicalChannelResponse;
+/**
+ * Smartcard service interface.
+ */
+interface IOpenLogicalChannelResponse {
+
+    int getChannel();
+
+    byte[] getSelectResponse();
+}

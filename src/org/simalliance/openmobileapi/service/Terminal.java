@@ -227,6 +227,10 @@ public class Terminal {
         SmartcardError error = new SmartcardError();
         try {
             OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(null,error);
+            Exception ex = error.createException();
+            if(ex != null) {
+                throw ex;
+            }
             mSelectResponse = response.getSelectResponse();
             return response.getChannel();
         } catch(RemoteException e) {
@@ -249,6 +253,10 @@ public class Terminal {
         SmartcardError error = new SmartcardError();
         try {
             OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(aid, error);
+            Exception ex = error.createException();
+            if(ex != null) {
+                throw ex;
+            }
             mSelectResponse = response.getSelectResponse();
             return response.getChannel();
         } catch(RemoteException e) {

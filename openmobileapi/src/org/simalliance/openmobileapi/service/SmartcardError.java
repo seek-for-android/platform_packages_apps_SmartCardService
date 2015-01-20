@@ -23,6 +23,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import java.lang.reflect.Constructor;
+import java.util.MissingResourceException;
 
 /**
  * Smartcard service parameter class used to marshal exception information from
@@ -92,6 +93,9 @@ public class SmartcardError implements Parcelable {
             if (mMessage.length() == 0) {
                 return (Exception) Class.forName(mClazz).newInstance();
             }
+            if ("java.util.MissingResourceException".equalsIgnoreCase(mClazz)) {
+                return new MissingResourceException(mMessage, "", "");
+            }
             Constructor constructor = Class.forName(mClazz).getConstructor(String.class);
             return (Exception) constructor.newInstance(mMessage);
         } catch (Exception e) {
@@ -133,6 +137,9 @@ public class SmartcardError implements Parcelable {
     public void throwException() throws CardException {
         Exception e = createException();
         if (e == null) {
+            return;
+        }
+        if (e instanceof MissingResourceException) {
             return;
         }
         if (e instanceof CardException) {

@@ -41,14 +41,12 @@ import android.util.Log;
 
 import org.simalliance.openmobileapi.service.Channel.SmartcardServiceChannel;
 import org.simalliance.openmobileapi.service.Terminal.SmartcardServiceReader;
-import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -57,7 +55,6 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import dalvik.system.DexClassLoader;
-import dalvik.system.DexFile;
 
 /**
  * The smartcard service is setup with privileges to access smart card hardware.
@@ -304,21 +301,19 @@ public final class SmartcardService extends Service {
         }
 
         Collection<Terminal> col = mTerminals.values();
-        Iterator<Terminal> iter = col.iterator();
-        while (iter.hasNext()) {
-            Terminal terminal = iter.next();
+        for (Terminal terminal : col) {
             if (terminal == null) {
-                
+
                 continue;
             }
-            
+
             if (se == null || terminal.getName().startsWith(se)) {
-                boolean isCardPresent = false;
+                boolean isCardPresent;
                 try {
                     isCardPresent = terminal.isCardPresent();
                 } catch (Exception e) {
                     isCardPresent = false;
-                    
+
                 }
 
                 if (isCardPresent) {
@@ -391,7 +386,7 @@ public final class SmartcardService extends Service {
                             sourceDir,
                             getCacheDir().getAbsolutePath(),
                             null,
-                            ClassLoader.getSystemClassLoader().getSystemClassLoader().getParent());
+                            ClassLoader.getSystemClassLoader().getParent());
                 String terminalType = (String) cl
                         .loadClass(info.serviceInfo.name)
                         .getMethod("getType", (Class<?>[]) null)
@@ -464,7 +459,7 @@ public final class SmartcardService extends Service {
         public ISmartcardServiceReader getReader(String reader,
                 SmartcardError error) throws RemoteException {
             Util.clearError(error);
-            Terminal terminal = (Terminal) getTerminal(reader, error);
+            Terminal terminal = getTerminal(reader, error);
             if (terminal != null) {
                 return terminal.new SmartcardServiceReader(
                         SmartcardService.this);
@@ -472,51 +467,6 @@ public final class SmartcardService extends Service {
             Util.setError(error, IllegalArgumentException.class,
                     "invalid reader name");
             return null;
-        }
-
-        @Override
-        public synchronized boolean[] isNFCEventAllowed(String reader,
-                byte[] aid, String[] packageNames,
-                ISmartcardServiceCallback callback, SmartcardError error)
-                throws RemoteException {
-            Util.clearError(error);
-            try {
-                if (callback == null) {
-                    Util.setError(error, NullPointerException.class,
-                            "callback must not be null");
-                    return null;
-                }
-                Terminal terminal = getTerminal(reader, error);
-                if (terminal == null) {
-                    return null;
-                }
-                if (aid == null || aid.length == 0) {
-                    aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
-                }
-                if (aid.length < 5 || aid.length > 16) {
-                    Util.setError(error, IllegalArgumentException.class,
-                            "AID out of range");
-                    return null;
-                }
-                if (packageNames == null || packageNames.length == 0) {
-                    Util.setError(error, IllegalArgumentException.class,
-                            "process names not specified");
-                    return null;
-                }
-                AccessControlEnforcer ac = null;
-                if (terminal.getAccessControlEnforcer() == null) {
-                    ac = new AccessControlEnforcer(terminal);
-                } else {
-                    ac = terminal.getAccessControlEnforcer();
-                }
-                ac.setPackageManager(getPackageManager());
-                ac.initialize(true, callback);
-                return ac.isNFCEventAllowed(aid, packageNames, callback);
-            } catch (Exception e) {
-                Util.setError(error, e);
-                Log.v(_TAG, "isNFCEventAllowed Exception: " + e.getMessage());
-                return null;
-            }
         }
     };
 
@@ -657,7 +607,7 @@ public final class SmartcardService extends Service {
                 
 
                 Log.v(_TAG, "OpenBasicChannel(AID)");
-                Channel channel = null;
+                Channel channel;
                 if (noAid) {
                     channel = mReader.getTerminal().openBasicChannel(this,
                             callback);
@@ -734,7 +684,7 @@ public final class SmartcardService extends Service {
                 
                 
                 Log.v(_TAG, "OpenLogicalChannel");
-                Channel channel = null;
+                Channel channel;
                 if (noAid) {
                     channel = mReader.getTerminal().openLogicalChannel(this,
                             callback);
@@ -786,7 +736,6 @@ public final class SmartcardService extends Service {
     public static final int MSG_LOAD_ESE_RULES = 2;
     public static final int MSG_LOAD_SD_RULES = 3;
 
-    public static final int NUMBER_OF_TRIALS = 3;
     public static final long WAIT_TIME = 1000;
 
     private final class ServiceHandler extends Handler {

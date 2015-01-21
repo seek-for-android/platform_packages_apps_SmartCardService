@@ -42,11 +42,10 @@ public class Reader {
     private final Object mLock = new Object();
 
 
-    Reader(SEService service, String name ) {
+    Reader(SEService service, ISmartcardServiceReader reader, String name ) {
         mName = name;
         mService = service;
-        mReader = null;
-        
+        mReader = reader;
     }
 
     /**
@@ -77,15 +76,8 @@ public class Reader {
      */
     public Session openSession() throws IOException {
 
-        if( mService == null || !mService.isConnected()){
+        if (mService == null || !mService.isConnected()) {
             throw new IllegalStateException("service is not connected");
-        }
-        if( mReader == null ){
-            try {
-                mReader = mService.getReader(mName);
-            } catch (Exception e) {
-                throw new IOException("service reader cannot be accessed.");
-            }
         }
 
         synchronized (mLock) {
@@ -112,15 +104,8 @@ public class Reader {
      * @return <code>true</code> if the SE is present, <code>false</code> otherwise.
      */
     public boolean isSecureElementPresent() {
-        if( mService == null || !mService.isConnected()){
+        if (mService == null || !mService.isConnected()) {
             throw new IllegalStateException("service is not connected");
-        }
-        if( mReader == null ){
-            try {
-                mReader = mService.getReader(mName);
-            } catch (Exception e) {
-                throw new IllegalStateException("service reader cannot be accessed. " + e.getLocalizedMessage());
-            }
         }
 
         SmartcardError error = new SmartcardError();
@@ -148,19 +133,8 @@ public class Reader {
      * all these sessions will be closed.
      */
     public void closeSessions() {
-        if( mService == null || !mService.isConnected()){
+        if (mService == null || !mService.isConnected()) {
             throw new IllegalStateException("service is not connected");
-        }
-        if( mReader != null ) {
-            synchronized (mLock) {
-                SmartcardError error = new SmartcardError();
-                try {
-                    mReader.closeSessions(error);
-                } catch (RemoteException e) {
-                    throw new IllegalStateException(e.getMessage());
-                }
-                SEService.checkForException(error);
-            }
         }
     }
 

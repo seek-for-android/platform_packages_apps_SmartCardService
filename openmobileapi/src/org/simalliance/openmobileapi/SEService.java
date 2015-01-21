@@ -213,7 +213,7 @@ public class SEService {
     // package private methods
     // ******************************************************************
 
-    ISmartcardServiceReader getReader(String name) {
+    private ISmartcardServiceReader getReader(String name) {
 
         SmartcardError error = new SmartcardError();
         ISmartcardServiceReader reader;
@@ -254,7 +254,7 @@ public class SEService {
 
         mReaders = new HashMap<String, Reader>();
         for (String readerName : readerNames) {
-            mReaders.put(readerName, new Reader(this, readerName));
+            mReaders.put(readerName, new Reader(this, getReader(readerName), readerName));
         }
     }
 

@@ -52,10 +52,10 @@ public class Reader {
     /**
      * Return the user-friendly name of this reader.
      * <ul>
-	 * <li>If this reader is a SIM reader, then its name must start with the "SIM" prefix.</li>
-	 * <li>If the reader is a SD or micro SD reader, then its name must start with the "SD" prefix</li>
-	 * <li>If the reader is a embedded SE reader, then its name must start with the "eSE" prefix</li>
-	 * <ul>
+     * <li>If this reader is a SIM reader, then its name must start with the "SIM" prefix.</li>
+     * <li>If the reader is a SD or micro SD reader, then its name must start with the "SD" prefix</li>
+     * <li>If the reader is a embedded SE reader, then its name must start with the "eSE" prefix</li>
+     * <ul>
      * 
      * @return name of this Reader
      */
@@ -77,31 +77,31 @@ public class Reader {
      */
     public Session openSession() throws IOException {
 
-    	if( mService == null || mService.isConnected() == false ){
-    		throw new IllegalStateException("service is not connected");
-    	}
-    	if( mReader == null ){
-    		try {
-    			mReader = mService.getReader(mName);
-    		} catch (Exception e) {
-    			throw new IOException("service reader cannot be accessed.");
-    		}
-    	}
-    	
+        if( mService == null || !mService.isConnected()){
+            throw new IllegalStateException("service is not connected");
+        }
+        if( mReader == null ){
+            try {
+                mReader = mService.getReader(mName);
+            } catch (Exception e) {
+                throw new IOException("service reader cannot be accessed.");
+            }
+        }
+
         synchronized (mLock) {
-        	SmartcardError error = new SmartcardError();
-        	ISmartcardServiceSession session;
-			try {
-				session = mReader.openSession(error);
-			} catch (RemoteException e) {
-				throw new IOException( e.getMessage() );
-			}
-        	SEService.checkForException(error);
-        	
-        	if( session == null ){
-        		throw new IOException( "service session is null." ); 
-        	}
-        	
+            SmartcardError error = new SmartcardError();
+            ISmartcardServiceSession session;
+            try {
+                session = mReader.openSession(error);
+            } catch (RemoteException e) {
+                throw new IOException( e.getMessage() );
+            }
+            SEService.checkForException(error);
+
+            if( session == null ){
+                throw new IOException( "service session is null." );
+            }
+
             return new Session(session, this);
         }
     }
@@ -112,25 +112,25 @@ public class Reader {
      * @return <code>true</code> if the SE is present, <code>false</code> otherwise.
      */
     public boolean isSecureElementPresent() {
-    	if( mService == null || mService.isConnected() == false ){
-    		throw new IllegalStateException("service is not connected");
-    	}
-    	if( mReader == null ){
-    		try {
-    			mReader = mService.getReader(mName);
-    		} catch (Exception e) {
-    			throw new IllegalStateException("service reader cannot be accessed. " + e.getLocalizedMessage());
-    		}
-    	}
+        if( mService == null || !mService.isConnected()){
+            throw new IllegalStateException("service is not connected");
+        }
+        if( mReader == null ){
+            try {
+                mReader = mService.getReader(mName);
+            } catch (Exception e) {
+                throw new IllegalStateException("service reader cannot be accessed. " + e.getLocalizedMessage());
+            }
+        }
 
-    	SmartcardError error = new SmartcardError();
-    	boolean flag;
-		try {
-			flag = mReader.isSecureElementPresent(error);
-		} catch (RemoteException e) {
-			throw new IllegalStateException(e.getMessage());
-		}
-    	SEService.checkForException(error);
+        SmartcardError error = new SmartcardError();
+        boolean flag;
+        try {
+            flag = mReader.isSecureElementPresent(error);
+        } catch (RemoteException e) {
+            throw new IllegalStateException(e.getMessage());
+        }
+        SEService.checkForException(error);
         return flag; 
     }
 
@@ -148,20 +148,20 @@ public class Reader {
      * all these sessions will be closed.
      */
     public void closeSessions() {
-    	if( mService == null || mService.isConnected() == false ){
-    		throw new IllegalStateException("service is not connected");
-    	}
-		if( mReader != null ) {
-	    	synchronized (mLock) {
-	        	SmartcardError error = new SmartcardError();
-	    		try {
-	    			mReader.closeSessions(error);
-	    		} catch (RemoteException e) {
-	    			throw new IllegalStateException(e.getMessage());
-	    		}
-	        	SEService.checkForException(error);
-	        }
-    	}
+        if( mService == null || !mService.isConnected()){
+            throw new IllegalStateException("service is not connected");
+        }
+        if( mReader != null ) {
+            synchronized (mLock) {
+                SmartcardError error = new SmartcardError();
+                try {
+                    mReader.closeSessions(error);
+                } catch (RemoteException e) {
+                    throw new IllegalStateException(e.getMessage());
+                }
+                SEService.checkForException(error);
+            }
+        }
     }
 
     // ******************************************************************

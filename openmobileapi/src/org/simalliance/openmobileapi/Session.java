@@ -40,14 +40,11 @@ import android.os.RemoteException;
 public class Session {
 
     private final Object mLock = new Object();
-    private final SEService mService;
     private final Reader mReader;
     private final ISmartcardServiceSession mSession;
 
-    Session(SEService service,
-            ISmartcardServiceSession session,
+    Session(ISmartcardServiceSession session,
             Reader reader) {
-        mService = service;
         mReader = reader;
         mSession = session;
     }
@@ -69,7 +66,7 @@ public class Session {
      * @return the ATR as a byte array or null.
      */
     public byte[] getATR() {
-        if (mService == null || !mService.isConnected()) {
+        if (mReader.getSEService() == null || !mReader.getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
         if (mSession == null) {
@@ -89,7 +86,7 @@ public class Session {
      * channels opened by this application with this Secure Element.
      */
     public void close() {
-        if (mService == null || !mService.isConnected()) {
+        if (mReader.getSEService() == null || !mReader.getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
         if (mSession != null) {
@@ -128,7 +125,7 @@ public class Session {
      */
     public void closeChannels() {
 
-        if (mService == null || !mService.isConnected()) {
+        if (mReader.getSEService() == null || !mReader.getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
 
@@ -189,7 +186,7 @@ public class Session {
      */
     public Channel openBasicChannel(byte[] aid) throws IOException {
 
-        if (mService == null || !mService.isConnected()) {
+        if (mReader.getSEService() == null || !mReader.getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
         if (mSession == null) {
@@ -205,7 +202,7 @@ public class Session {
             try {
                 channel = mSession.openBasicChannelAid(
                         aid,
-                        mService.getCallback(),
+                        mReader.getSEService().getCallback(),
                         error);
             } catch (RemoteException e) {
                 throw new IllegalStateException(e.getMessage());
@@ -235,7 +232,7 @@ public class Session {
                 return null;
             }
 
-            return new Channel(mService, this, channel);
+            return new Channel(this, channel);
         }
     }
 
@@ -270,7 +267,7 @@ public class Session {
      */
     public Channel openLogicalChannel(byte[] aid) throws IOException {
 
-        if (mService == null || !mService.isConnected()) {
+        if (mReader.getSEService() == null || !mReader.getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
         if (mSession == null) {
@@ -285,7 +282,7 @@ public class Session {
             try {
                 channel = mSession.openLogicalChannel(
                         aid,
-                        mService.getCallback(),
+                        mReader.getSEService().getCallback(),
                         error);
             } catch (RemoteException e) {
                 throw new IllegalStateException(e.getMessage());
@@ -307,7 +304,7 @@ public class Session {
                 return null;
             }
 
-            return new Channel(mService, this, channel);
+            return new Channel(this, channel);
         }
     }
 

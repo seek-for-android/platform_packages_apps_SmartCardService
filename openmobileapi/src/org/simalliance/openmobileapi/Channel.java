@@ -41,12 +41,10 @@ public class Channel {
     private Session mSession;
 
     private final ISmartcardServiceChannel mChannel;
-    private final SEService mService;
     
     private final Object mLock = new Object();
 
-    Channel(SEService service, Session session, ISmartcardServiceChannel channel) {
-    	mService = service;
+    Channel(Session session, ISmartcardServiceChannel channel) {
         mSession = session;
         mChannel = channel;
     }
@@ -58,7 +56,8 @@ public class Channel {
      * before closing the channel.
      */
     public void close() {
-        if (mService == null || !mService.isConnected()) {
+        if (mSession.getReader().getSEService() == null
+                || !mSession.getReader().getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {
@@ -83,7 +82,8 @@ public class Channel {
      * @return <code>true</code> if the channel is closed, <code>false</code> otherwise.
      */
     public boolean isClosed() {
-        if (mService == null || mService.isConnected() == false) {
+        if (mSession.getReader().getSEService() == null
+                || !mSession.getReader().getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {
@@ -103,7 +103,8 @@ public class Channel {
      *         this channel is a logical channel.
      */
     public boolean isBasicChannel() {
-        if (mService == null || mService.isConnected() == false) {
+        if (mSession.getReader().getSEService() == null
+                || !mSession.getReader().getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {
@@ -148,7 +149,8 @@ public class Channel {
      *             policy
      */
     public byte[] transmit(byte[] command) throws IOException {
-        if (mService == null || mService.isConnected() == false) {
+        if (mSession.getReader().getSEService() == null
+                || !mSession.getReader().getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {
@@ -192,7 +194,8 @@ public class Channel {
      */
     public byte[] getSelectResponse()
     {
-       	if (mService == null || mService.isConnected() == false) {
+        if (mSession.getReader().getSEService() == null
+                || !mSession.getReader().getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {
@@ -236,7 +239,8 @@ public class Channel {
      * @throws UnsupportedOperationException if selectNext is not supported by Secure Element.
      */
     public boolean selectNext() throws IOException {
-       	if (mService == null || mService.isConnected() == false) {
+        if (mSession.getReader().getSEService() == null
+                || !mSession.getReader().getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {

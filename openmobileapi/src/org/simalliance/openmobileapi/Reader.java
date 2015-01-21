@@ -102,7 +102,7 @@ public class Reader {
         		throw new IOException( "service session is null." ); 
         	}
         	
-            return new Session(mService, session, this);
+            return new Session(session, this);
         }
     }
 

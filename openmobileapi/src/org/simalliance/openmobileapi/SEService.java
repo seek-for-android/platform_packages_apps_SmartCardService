@@ -21,9 +21,8 @@ package org.simalliance.openmobileapi;
 
 import java.security.AccessControlException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Map;
 
 import org.simalliance.openmobileapi.service.CardException;
 import org.simalliance.openmobileapi.service.ISmartcardService;
@@ -66,8 +65,7 @@ public class SEService {
     /**
      * Collection of available readers.
      */
-    final private HashMap<String, Reader> mReaders
-        = new HashMap<String, Reader>();
+    private Map<String, Reader> mReaders;
 
     /**
      * This implementation is used to receive callbacks from backend.
@@ -143,9 +141,7 @@ public class SEService {
         Intent intent = new Intent(ISmartcardService.class.getName());
         boolean bindingSuccessful = mContext.bindService(intent, mConnection,
                 Context.BIND_AUTO_CREATE);
-        if (bindingSuccessful) {
-            Log.v(SERVICE_TAG, "bindService successful");
-        }
+        Log.v(SERVICE_TAG, "bindingSuccessful: " + bindingSuccessful);
     }
 
     /**
@@ -154,10 +150,7 @@ public class SEService {
      * @return <code>true</code> if the service is connected.
      */
     public boolean isConnected() {
-        if (mSmartcardService == null) {
-            return false;
-        }
-        return true;
+        return mSmartcardService != null;
     }
 
     /**
@@ -173,17 +166,8 @@ public class SEService {
             throw new IllegalStateException("service not connected to system");
         }
 
-        SmartcardError error = new SmartcardError();
-        String[] readerNames;
-        try {
-            readerNames = mSmartcardService.getReaders(error);
-        } catch (RemoteException e) {
-            throw new IllegalStateException(e);
-        }
-
-        mReaders.clear();
-        for (String readerName : readerNames) {
-            mReaders.put(readerName, new Reader(this, readerName));
+        if (mReaders == null) {
+            initReadersMap();
         }
 
         return sortReaders();
@@ -198,11 +182,8 @@ public class SEService {
     public void shutdown() {
         synchronized (mLock) {
             if (mSmartcardService != null) {
-                Collection<Reader> col = mReaders.values();
-                Iterator<Reader> iter = col.iterator();
-                while (iter.hasNext()) {
+                for (Reader reader : mReaders.values()) {
                     try {
-                        Reader reader = iter.next();
                         reader.closeSessions();
                     } catch (Exception ignore) {
                     }
@@ -235,7 +216,7 @@ public class SEService {
     ISmartcardServiceReader getReader(String name) {
 
         SmartcardError error = new SmartcardError();
-        ISmartcardServiceReader reader = null;
+        ISmartcardServiceReader reader;
         try {
             reader = mSmartcardService.getReader(name, error);
         } catch (RemoteException e) {
@@ -257,6 +238,24 @@ public class SEService {
 
     ISmartcardServiceCallback getCallback() {
         return mCallback;
+    }
+
+    /**
+     * Forms the map of the available readers.
+     */
+    private void initReadersMap() {
+        SmartcardError error = new SmartcardError();
+        String[] readerNames;
+        try {
+            readerNames = mSmartcardService.getReaders(error);
+        } catch (RemoteException e) {
+            throw new IllegalStateException(e);
+        }
+
+        mReaders = new HashMap<String, Reader>();
+        for (String readerName : readerNames) {
+            mReaders.put(readerName, new Reader(this, readerName));
+        }
     }
 
     /**

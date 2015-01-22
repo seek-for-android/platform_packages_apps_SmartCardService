@@ -23,7 +23,7 @@ package org.simalliance.openmobileapi.service.security.arf.PKCS15;
 import java.security.AccessControlException;
 import java.util.MissingResourceException;
 
-import org.simalliance.openmobileapi.service.IChannel;
+import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.security.arf.SecureElement;
 import org.simalliance.openmobileapi.service.security.arf.SecureElementException;
 
@@ -58,7 +58,7 @@ public class PKCS15Handler {
     private String mSELabel=null;
 
     // Handle to "Logical Channel" allocated by the SE
-    private IChannel mArfChannel=null;
+    private Channel mArfChannel=null;
 
     // "EF Access Control Main" object
     private EFACMain mACMainObject=null;

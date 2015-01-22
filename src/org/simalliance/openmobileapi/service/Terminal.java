@@ -45,7 +45,6 @@ import android.content.pm.PackageManager;
 
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
-import org.simalliance.openmobileapi.service.ITerminalService;
 
 
 /**
@@ -58,7 +57,7 @@ public class Terminal {
 
     protected Context mContext;
 
-    private final Map<Long, IChannel> mChannels = new HashMap<Long, IChannel>();
+    private final Map<Long, Channel> mChannels = new HashMap<Long, Channel>();
 
     protected final String mName;
 
@@ -159,11 +158,11 @@ public class Terminal {
      * to clean up all open channels.
      */
     public synchronized void closeChannels() {
-        Collection<IChannel> col = mChannels.values();
-        IChannel[] channelList = col.toArray(new IChannel[col.size()]);
-        for (IChannel channel : channelList) {
+        Collection<Channel> col = mChannels.values();
+        Channel[] channelList = col.toArray(new Channel[col.size()]);
+        for (Channel channel : channelList) {
             try {
-                closeChannel((Channel) channel);
+                closeChannel(channel);
             } catch (Exception ignore) {
             }
         }
@@ -199,8 +198,8 @@ public class Terminal {
         return new Channel(session, this, channelNumber, callback);
     }
 
-    private IChannel getBasicChannel() {
-        for (IChannel channel : mChannels.values()) {
+    private Channel getBasicChannel() {
+        for (Channel channel : mChannels.values()) {
             if (channel.getChannelNumber() == 0) {
                 return channel;
             }
@@ -208,7 +207,7 @@ public class Terminal {
         return null;
     }
 
-    public synchronized IChannel getChannel(long hChannel) {
+    public synchronized Channel getChannel(long hChannel) {
         return mChannels.get(hChannel);
     }
 
@@ -414,11 +413,7 @@ public class Terminal {
             throw new CardException("basic channel in use");
         }
 
-        try {
-            select(aid);
-        } catch (Exception e) {
-            throw e;
-        }
+        select(aid);
 
 
         Channel basicChannel = createChannel(session, 0, callback);
@@ -436,12 +431,7 @@ public class Terminal {
             throw new NullPointerException("callback must not be null");
         }
 
-        int channelNumber = 0;
-        try {
-            channelNumber = internalOpenLogicalChannel();
-        } catch (Exception e) {
-            throw e;
-        }
+        int channelNumber = internalOpenLogicalChannel();
 
 
         Channel logicalChannel = createChannel(
@@ -463,12 +453,7 @@ public class Terminal {
             throw new NullPointerException("aid must not be null");
         }
 
-        int channelNumber = 0;
-        try {
-            channelNumber = internalOpenLogicalChannel(aid);
-        } catch (Exception e) {
-            throw e;
-        }
+        int channelNumber = internalOpenLogicalChannel(aid);
 
 
         Channel logicalChannel = createChannel(
@@ -493,19 +478,16 @@ public class Terminal {
      */
     protected synchronized byte[] protocolTransmit(byte[] cmd)
             throws CardException {
-        byte[] command = cmd;
-        byte[] rsp = null;
-        rsp = internalTransmit(command);
+        byte[] rsp = internalTransmit(cmd);
 
         if (rsp.length >= 2) {
             int sw1 = rsp[rsp.length - 2] & 0xFF;
-            int sw2 = rsp[rsp.length - 1] & 0xFF;
             if (sw1 == 0x6C) {
-                command[cmd.length - 1] = rsp[rsp.length - 1];
-                rsp = internalTransmit(command);
+                cmd[cmd.length - 1] = rsp[rsp.length - 1];
+                rsp = internalTransmit(cmd);
             } else if (sw1 == 0x61) {
                 byte[] getResponseCmd = new byte[] {
-                        command[0], (byte) 0xC0, 0x00, 0x00, 0x00
+                        cmd[0], (byte) 0xC0, 0x00, 0x00, 0x00
                 };
                 byte[] response = new byte[rsp.length - 2];
                 System.arraycopy(rsp, 0, response, 0, rsp.length - 2);
@@ -571,7 +553,7 @@ public class Terminal {
             int swMask,
             String commandName)
                     throws CardException {
-        byte[] rsp = null;
+        byte[] rsp;
         try {
             rsp = protocolTransmit(cmd);
         } catch (Exception e) {
@@ -780,7 +762,7 @@ public class Terminal {
         /* Dump the list of currunlty openned channels */
         writer.println(prefix + "List of open channels:");
 
-        for (IChannel channel : mChannels.values()) {
+        for (Channel channel : mChannels.values()) {
             writer.println(prefix + "  channel " + channel.getChannelNumber()
                     + ": ");
             writer.println(prefix + "    package      : "

@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.security.AccessControlException;
 
 import org.simalliance.openmobileapi.service.CardException;
-import org.simalliance.openmobileapi.service.IChannel;
+import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.security.CommandApdu;
 import org.simalliance.openmobileapi.service.security.ResponseApdu;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.BerTlv;
@@ -46,9 +46,9 @@ public class AccessRuleApplet {
     final private static CommandApdu mGetRefreshTag = new CommandApdu(0x80, 0xCA, 0xDF, 0x20, _MAX_LEN );
     
 
-    private IChannel mChannel = null;
+    private Channel mChannel = null;
 
-    public AccessRuleApplet(IChannel channel) {
+    public AccessRuleApplet(Channel channel) {
         mChannel = channel;
     }
 

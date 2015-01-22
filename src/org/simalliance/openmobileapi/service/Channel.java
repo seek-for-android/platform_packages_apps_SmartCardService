@@ -38,7 +38,7 @@ import org.simalliance.openmobileapi.service.security.ChannelAccess;
 /**
  * Smartcard service base class for channel resources.
  */
-class Channel implements IChannel, IBinder.DeathRecipient {
+public class Channel implements IBinder.DeathRecipient {
 
     protected final int mChannelNumber;
 
@@ -145,7 +145,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
      * @return true if this channel is a basic channel
      */
     public boolean isBasicChannel() {
-        return (mChannelNumber == 0) ? true : false;
+        return (mChannelNumber == 0);
     }
 
     public ISmartcardServiceCallback getCallback() {
@@ -218,9 +218,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
         // set channel number bits
         command[0] = setChannelToClassByte(command[0], mChannelNumber);
 
-        byte[] rsp = getTerminal().transmit(command, 2, 0, 0, null);
-        
-        return rsp;
+        return getTerminal().transmit(command, 2, 0, 0, null);
     }
 
     public boolean selectNext() throws CardException {
@@ -465,10 +463,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
                 
                 Channel.this.setCallingPid(Binder.getCallingPid());
                 
-                
-                byte[] response = Channel.this.transmit(command);
-                
-                return response;
+                return Channel.this.transmit(command);
             } catch (Exception e) {
                 Log.v(SmartcardService._TAG, "transmit Exception: "
                         + e.getMessage()
@@ -493,13 +488,12 @@ class Channel implements IChannel, IBinder.DeathRecipient {
                 }
                 
                 Channel.this.setCallingPid(Binder.getCallingPid());
-                
-                boolean response = Channel.this.selectNext();
-                return response;
+
+                return Channel.this.selectNext();
             } catch (Exception e) {
                 Util.setError(error, e);
                 return false;
             }
         }
-    };
+    }
 }

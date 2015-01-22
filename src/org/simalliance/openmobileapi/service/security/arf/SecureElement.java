@@ -22,7 +22,7 @@ package org.simalliance.openmobileapi.service.security.arf;
 
 import android.util.Log;
 import java.util.MissingResourceException;
-import org.simalliance.openmobileapi.service.IChannel;
+import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
 import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
@@ -39,7 +39,7 @@ public class SecureElement {
     public static final String TAG = "SmartcardService ACE ARF";
 
     // Logical channel used for SE communication (optional)
-    private IChannel mArfChannel=null;
+    private Channel mArfChannel=null;
     // Handle to a built-in "Secure Element"
     private Terminal mTerminalHandle=null;
     // Arf Controller within the SCAPI handler 
@@ -99,7 +99,7 @@ public class SecureElement {
      * @return Handle to "Logical Channel" allocated by the SE;
      *             <code>0</code> if error occurred
      */
-    public IChannel openLogicalArfChannel(byte[] AID) {
+    public Channel openLogicalArfChannel(byte[] AID) {
         try {
 
             mArfChannel=mTerminalHandle.openLogicalChannel(null,AID,mCallback);
@@ -142,7 +142,7 @@ public class SecureElement {
      * 
      * @param channel
      */
-    private void setUpChannelAccess( IChannel channel ){
+    private void setUpChannelAccess( Channel channel ){
         // set access conditions to access ARF.
         ChannelAccess arfChannelAccess = new ChannelAccess();
         arfChannelAccess.setAccess(ChannelAccess.ACCESS.ALLOWED, "");

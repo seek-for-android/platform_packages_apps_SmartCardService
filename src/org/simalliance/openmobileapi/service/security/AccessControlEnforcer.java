@@ -37,7 +37,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import org.simalliance.openmobileapi.service.CardException;
-import org.simalliance.openmobileapi.service.IChannel;
+import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
 import org.simalliance.openmobileapi.service.SmartcardService;
 import org.simalliance.openmobileapi.service.Terminal;
@@ -224,7 +224,7 @@ public class AccessControlEnforcer {
         return cert;
     }
     
-    public synchronized void checkCommand(IChannel channel, byte[] command) {
+    public synchronized void checkCommand(Channel channel, byte[] command) {
 
         ChannelAccess ca = channel.getChannelAccess();
         if (ca == null) {

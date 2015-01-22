@@ -25,7 +25,7 @@ import java.util.NoSuchElementException;
 import java.util.MissingResourceException;
 
 import org.simalliance.openmobileapi.service.CardException;
-import org.simalliance.openmobileapi.service.IChannel;
+import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
 import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
@@ -75,7 +75,7 @@ public class AraController {
 			ISmartcardServiceCallback callback) 
 	{
 
-		IChannel channel = null;
+		Channel channel = null;
 		try {
 			 channel = this.handleOpenChannel(callback);
 		} catch( MissingResourceException e ){
@@ -116,8 +116,8 @@ public class AraController {
         return true;
 	}
 	
-	private IChannel handleOpenChannel( ISmartcardServiceCallback callback ){
-        IChannel channel = null;
+	private Channel handleOpenChannel( ISmartcardServiceCallback callback ){
+        Channel channel = null;
     	String reason = "";
 		
         try {
@@ -195,11 +195,11 @@ public class AraController {
     	return true;
     }
     
-    private IChannel openChannel(Terminal terminal, byte[] aid, ISmartcardServiceCallback callback) throws Exception
+    private Channel openChannel(Terminal terminal, byte[] aid, ISmartcardServiceCallback callback) throws Exception
     {
 
 
-        IChannel channel = terminal.openLogicalChannel(null, aid, callback);
+        Channel channel = terminal.openLogicalChannel(null, aid, callback);
 
         // set access conditions to access ARA-M.
         ChannelAccess araChannelAccess = new ChannelAccess();
@@ -210,7 +210,7 @@ public class AraController {
         return channel;
 }
 
-    private void closeChannel(IChannel channel) {
+    private void closeChannel(Channel channel) {
         try {
             if (channel != null && channel.getChannelNumber() != 0) {
 

@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import org.simalliance.openmobileapi.internal.ByteArrayConverter;
 import org.simalliance.openmobileapi.internal.ErrorStrings;
 import org.simalliance.openmobileapi.util.CommandApdu;
+import org.simalliance.openmobileapi.util.ISO7816;
 import org.simalliance.openmobileapi.util.ResponseApdu;
 
 /**
@@ -44,6 +45,47 @@ public class SecureStorageProvider extends Provider {
      * Maximum length for a SS title.
      */
     public static final int MAX_TITLE_LENGTH = 60;
+
+    /**
+     * Secure Storage INS values.
+     */
+
+    /**
+     * SIM Alliance Secure Storage Applet instruction values.
+     */
+
+    /**
+     * SIM Alliance Secure Storage PING SS APPLET instruction value.
+     */
+    public static final byte INS_PING_SS_APPLET = (byte) 0xAA;
+    /**
+     * SIM Alliance Secure Storage CREATE SS ENTRY instruction value.
+     */
+    public static final byte INS_CREATE_SS_ENTRY = (byte) 0xE0;
+    /**
+     * SIM Alliance Secure Storage DELETE ALL SS ENTRIES instruction value.
+     */
+    public static final byte INS_DELETE_ALL_SS_ENTRIES = (byte) 0xE5;
+    /**
+     * SIM Alliance Secure Storage DELETE SS ENTRY instruction value.
+     */
+    public static final byte INS_DELETE_SS_ENTRY = (byte) 0xE4;
+    /**
+     * SIM Alliance Secure Storage GET SS ENTRY DATA instruction value.
+     */
+    public static final byte INS_GET_SS_ENTRY_DATA = (byte) 0xCA;
+    /**
+     * SIM Alliance Secure Storage GET SS ENTRY ID instruction value.
+     */
+    public static final byte INS_GET_SS_ENTRY_ID = (byte) 0xB2;
+    /**
+     * SIM Alliance Secure Storage SELECT SS ENTRY instruction value.
+     */
+    public static final byte INS_SELECT_SS_ENTRY = (byte) 0xA5;
+    /**
+     * SIM Alliance Secure Storage PUT SS ENTRY DATA instruction value.
+     */
+    public static final byte INS_PUT_SS_ENTRY_DATA = (byte) 0xDA;
 
     /**
      * Creates a SecureStorageProvider instance which will be connected to the
@@ -103,15 +145,15 @@ public class SecureStorageProvider extends Provider {
             id = sendCreateEntryCommand(title);
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_MEMORY_FAILURE:
+            case ISO7816.SW_MEMORY_FAILURE:
                 throw new IOException(ErrorStrings.SES_CREATE_FAILED_MEMORY);
-            case ResponseApdu.SES_SW_INCORRECT_COMMAND_DATA:
+            case ISO7816.SW_WRONG_DATA:
                 throw new IllegalArgumentException(
                         ErrorStrings.SES_TITLE_EXISTS);
-            case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+            case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-            case ResponseApdu.SES_SW_NOT_ENOUGH_MEMORY:
+            case ISO7816.SW_NOT_ENOUGH_MEMORY:
                 throw new IOException(ErrorStrings.SES_NOT_ENOUGH_MEMORY);
             default:
                 throw new IOException(ErrorStrings.unexpectedStatusWord(e
@@ -153,13 +195,12 @@ public class SecureStorageProvider extends Provider {
                     sendDeleteEntryCommand(id);
                 } catch (ProcessingException t) {
                 }
-                if (e.getSwValue() == ResponseApdu.
-                        SES_SW_MEMORY_FAILURE) {
+                if (e.getSwValue() == ISO7816.
+                        SW_MEMORY_FAILURE) {
                     throw new IllegalArgumentException(
                             ErrorStrings.SES_CREATE_FAILED_MEMORY);
                 }
-                if (e.getSwValue() == ResponseApdu.
-                        SES_SW_MEMORY_FAILURE) {
+                if (e.getSwValue() == ISO7816.SW_MEMORY_FAILURE) {
                     throw new IllegalArgumentException(
                             ErrorStrings.SES_CREATE_FAILED_MEMORY);
                 } else {
@@ -183,10 +224,10 @@ public class SecureStorageProvider extends Provider {
                 // Decide how many bytes will be sent in the next
                 // iteration
                 int currentBufferSize;
-                if (remainingBytes < CommandApdu.MAX_DATA_LENGTH) {
+                if (remainingBytes < ISO7816.MAX_COMMAND_DATA_LENGTH) {
                     currentBufferSize = remainingBytes;
                 } else {
-                    currentBufferSize = CommandApdu.MAX_DATA_LENGTH;
+                    currentBufferSize = ISO7816.MAX_COMMAND_DATA_LENGTH;
                 }
 
                 // Initialize and fill the buffer.
@@ -209,13 +250,13 @@ public class SecureStorageProvider extends Provider {
                         sendDeleteEntryCommand(id);
                     } catch (ProcessingException t) {
                     }
-                    if (e.getSwValue() == ResponseApdu.
-                            SES_SW_MEMORY_FAILURE) {
+                    if (e.getSwValue() == ISO7816.
+                            SW_MEMORY_FAILURE) {
                         throw new IllegalArgumentException(
                                 ErrorStrings.SES_CREATE_FAILED_MEMORY);
                     }
-                    if (e.getSwValue() == ResponseApdu.
-                            SES_SW_NOT_ENOUGH_MEMORY) {
+                    if (e.getSwValue() == ISO7816.
+                            SW_NOT_ENOUGH_MEMORY) {
                         throw new IllegalArgumentException(
                                 ErrorStrings.SES_NOT_ENOUGH_MEMORY);
                     } else {
@@ -286,10 +327,10 @@ public class SecureStorageProvider extends Provider {
             id = sendGetIdCommand(title);
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+            case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-            case ResponseApdu.SES_SW_REF_NOT_FOUND:
+            case ISO7816.SW_REF_NOT_FOUND:
                 throw new IllegalArgumentException(ErrorStrings.
                         SES_NO_ENTRY_SELECTED);
             default:
@@ -302,7 +343,7 @@ public class SecureStorageProvider extends Provider {
             sendSelectCommand(id);
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+            case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             default:
@@ -319,10 +360,10 @@ public class SecureStorageProvider extends Provider {
             sendPutDataCommand(data.length);
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_MEMORY_FAILURE:
+            case ISO7816.SW_MEMORY_FAILURE:
                 throw new IllegalArgumentException(
                         ErrorStrings.SES_CREATE_FAILED_MEMORY);
-            case ResponseApdu.SES_SW_NOT_ENOUGH_MEMORY:
+            case ISO7816.SW_NOT_ENOUGH_MEMORY:
                 throw new IllegalArgumentException(
                         ErrorStrings.SES_NOT_ENOUGH_MEMORY);
             default:
@@ -337,7 +378,7 @@ public class SecureStorageProvider extends Provider {
             // Decide how many bytes will be sent in the next
             // iteration
             byte[] buffer;
-            if (remainingBytes < CommandApdu.MAX_DATA_LENGTH) {
+            if (remainingBytes < ISO7816.MAX_COMMAND_DATA_LENGTH) {
                 buffer = new byte[remainingBytes];
             } else {
                 buffer = new byte[remainingBytes];
@@ -362,13 +403,13 @@ public class SecureStorageProvider extends Provider {
                     create(title, previousData);
                 } catch (ProcessingException t) {
                 }
-                if (e.getSwValue() == ResponseApdu.
-                        SES_SW_MEMORY_FAILURE) {
+                if (e.getSwValue() == ISO7816.
+                        SW_MEMORY_FAILURE) {
                     throw new IllegalArgumentException(
                             ErrorStrings.SES_CREATE_FAILED_MEMORY);
                 }
-                if (e.getSwValue() == ResponseApdu.
-                        SES_SW_NOT_ENOUGH_MEMORY) {
+                if (e.getSwValue() == ISO7816.
+                        SW_NOT_ENOUGH_MEMORY) {
                     throw new IllegalArgumentException(
                             ErrorStrings.SES_NOT_ENOUGH_MEMORY);
                 } else {
@@ -429,10 +470,10 @@ public class SecureStorageProvider extends Provider {
             id = sendGetIdCommand(title);
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+            case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-            case ResponseApdu.SES_SW_REF_NOT_FOUND:
+            case ISO7816.SW_REF_NOT_FOUND:
                 return new byte[0];
             default:
                 throw new IOException(ErrorStrings.unexpectedStatusWord(
@@ -444,7 +485,7 @@ public class SecureStorageProvider extends Provider {
             sendSelectCommand(id);
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+            case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             default:
@@ -463,7 +504,7 @@ public class SecureStorageProvider extends Provider {
             data = new byte[dataSize];
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+            case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             default:
@@ -489,7 +530,7 @@ public class SecureStorageProvider extends Provider {
                 bytesRecieved += buffer.length;
             } catch (ProcessingException e) {
                 switch (e.getSwValue()) {
-                case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+                case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                     throw new SecurityException(
                             ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
                 default:
@@ -537,9 +578,9 @@ public class SecureStorageProvider extends Provider {
             return true;
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_REF_NOT_FOUND:
+            case ISO7816.SW_REF_NOT_FOUND:
                 return false;
-            case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+            case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             default:
@@ -584,10 +625,10 @@ public class SecureStorageProvider extends Provider {
             id = sendGetIdCommand(title);
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+            case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-            case ResponseApdu.SES_SW_REF_NOT_FOUND:
+            case ISO7816.SW_REF_NOT_FOUND:
                 return false;
             default:
                 throw new IOException(ErrorStrings.unexpectedStatusWord(e
@@ -599,9 +640,9 @@ public class SecureStorageProvider extends Provider {
             return sendDeleteEntryCommand(id);
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_MEMORY_FAILURE:
+            case ISO7816.SW_MEMORY_FAILURE:
                 throw new IOException(ErrorStrings.MEMORY_FAILURE);
-            case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+            case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             default:
@@ -624,19 +665,19 @@ public class SecureStorageProvider extends Provider {
             IOException {
 
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_PROPRIETARY);
-        apdu.setIns(CommandApdu.INS_DELETE_ALL_SS_ENTRIES);
+        apdu.setCla(ISO7816.CLA_PROPRIETARY);
+        apdu.setIns(INS_DELETE_ALL_SS_ENTRIES);
         apdu.setP1((byte) 0x00);
         apdu.setP2((byte) 0x00);
         byte[] apduResponse = apdu.sendApdu();
 
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return;
-        case ResponseApdu.SES_SW_MEMORY_FAILURE:
+        case ISO7816.SW_MEMORY_FAILURE:
             throw new IOException(ErrorStrings.MEMORY_FAILURE);
-        case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
         default:
@@ -670,10 +711,10 @@ public class SecureStorageProvider extends Provider {
             titles.add(sendSelectCommand(SelectP1.First));
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
-            case ResponseApdu.SES_SW_REF_NOT_FOUND:
+            case ISO7816.SW_REF_NOT_FOUND:
                 // There are no more entries.
                 allEntriesHasBeenRead = true;
-            case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+            case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             default:
@@ -688,11 +729,11 @@ public class SecureStorageProvider extends Provider {
                 titles.add(sendSelectCommand(SelectP1.Next));
             } catch (ProcessingException e) {
                 switch (e.getSwValue()) {
-                case ResponseApdu.SES_SW_REF_NOT_FOUND:
+                case ISO7816.SW_REF_NOT_FOUND:
                     // There are no more entries.
                     allEntriesHasBeenRead = true;
                     break;
-                case ResponseApdu.SES_SW_SECURITY_STATUS_NOT_SATISFIED:
+                case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                     throw new SecurityException(
                             ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
                 default:
@@ -770,14 +811,14 @@ public class SecureStorageProvider extends Provider {
      */
     private boolean sendPingCommand() {
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_PROPRIETARY);
-        apdu.setIns(CommandApdu.INS_PING_SS_APPLET);
+        apdu.setCla(ISO7816.CLA_PROPRIETARY);
+        apdu.setIns(INS_PING_SS_APPLET);
         apdu.setP1((byte) 0x00);
         apdu.setP2((byte) 0x00);
         try {
             byte[] response = apdu.sendApdu();
             return ResponseApdu.getResponseStatusWordValue(response)
-                    == ResponseApdu.SW_NO_FURTHER_QUALIFICATION;
+                    == ISO7816.SW_NO_FURTHER_QUALIFICATION;
         } catch (Exception e) {
             return false;
         }
@@ -798,15 +839,15 @@ public class SecureStorageProvider extends Provider {
 
         byte[] titleArray = title.getBytes();
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_PROPRIETARY);
-        apdu.setIns(CommandApdu.INS_CREATE_SS_ENTRY);
+        apdu.setCla(ISO7816.CLA_PROPRIETARY);
+        apdu.setIns(INS_CREATE_SS_ENTRY);
         apdu.setP1((byte) 0x00);
         apdu.setP2((byte) 0x00);
         apdu.setData(titleArray);
 
         byte[] apduResponse = apdu.sendApdu();
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
-        if (swValue == ResponseApdu.SW_NO_FURTHER_QUALIFICATION) {
+        if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
             return ByteArrayConverter.byteArrayToInt(ResponseApdu
                     .getResponseData(apduResponse));
         } else {
@@ -829,16 +870,16 @@ public class SecureStorageProvider extends Provider {
 
         byte[] idArray = ByteArrayConverter.intToByteArray(id);
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_PROPRIETARY);
-        apdu.setIns(CommandApdu.INS_DELETE_SS_ENTRY);
+        apdu.setCla(ISO7816.CLA_PROPRIETARY);
+        apdu.setIns(INS_DELETE_SS_ENTRY);
         apdu.setP1(idArray[0]);
         apdu.setP2(idArray[1]);
 
         byte[] apduResponse = apdu.sendApdu();
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
-        if (swValue == ResponseApdu.SW_NO_FURTHER_QUALIFICATION) {
+        if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
             return true;
-        } else if (swValue == ResponseApdu.SES_SW_REF_NOT_FOUND) {
+        } else if (swValue == ISO7816.SW_REF_NOT_FOUND) {
             return false;
         } else {
             throw new ProcessingException(swValue);
@@ -860,8 +901,8 @@ public class SecureStorageProvider extends Provider {
             throws IOException, ProcessingException {
 
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_PROPRIETARY);
-        apdu.setIns(CommandApdu.INS_SELECT_SS_ENTRY);
+        apdu.setCla(ISO7816.CLA_PROPRIETARY);
+        apdu.setIns(INS_SELECT_SS_ENTRY);
         switch(p1) {
         case Id:
             apdu.setP1((byte) 0x00);
@@ -885,7 +926,7 @@ public class SecureStorageProvider extends Provider {
         apdu.setLE((byte) 0x00);
         byte[] apduResponse = apdu.sendApdu();
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
-        if (swValue == ResponseApdu.SW_NO_FURTHER_QUALIFICATION) {
+        if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
             return ByteArrayConverter.byteArrayToCharString(ResponseApdu
                     .getResponseData(apduResponse));
         } else {
@@ -942,8 +983,8 @@ public class SecureStorageProvider extends Provider {
             throws IOException, ProcessingException {
 
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_PROPRIETARY);
-        apdu.setIns(CommandApdu.INS_PUT_SS_ENTRY_DATA);
+        apdu.setCla(ISO7816.CLA_PROPRIETARY);
+        apdu.setIns(INS_PUT_SS_ENTRY_DATA);
         switch(p1) {
         case Size:
             apdu.setP1((byte) 0x00);
@@ -959,7 +1000,7 @@ public class SecureStorageProvider extends Provider {
         apdu.setData(data);
         byte[] apduResponse = apdu.sendApdu();
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
-        if (swValue != ResponseApdu.SW_NO_FURTHER_QUALIFICATION) {
+        if (swValue != ISO7816.SW_NO_FURTHER_QUALIFICATION) {
             throw new ProcessingException(swValue);
         }
     }
@@ -998,8 +1039,8 @@ public class SecureStorageProvider extends Provider {
             throws IOException, ProcessingException {
 
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_PROPRIETARY);
-        apdu.setIns(CommandApdu.INS_GET_SS_ENTRY_DATA);
+        apdu.setCla(ISO7816.CLA_PROPRIETARY);
+        apdu.setIns(INS_GET_SS_ENTRY_DATA);
         switch(p1) {
         case Size:
             apdu.setP1((byte) 0x00);
@@ -1015,7 +1056,7 @@ public class SecureStorageProvider extends Provider {
         apdu.setLE((byte) 0x00);
         byte[] apduResponse = apdu.sendApdu();
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
-        if (swValue == ResponseApdu.SW_NO_FURTHER_QUALIFICATION) {
+        if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
             return ResponseApdu.getResponseData(apduResponse);
         } else {
             throw new ProcessingException(swValue);
@@ -1036,15 +1077,15 @@ public class SecureStorageProvider extends Provider {
             throws IOException, ProcessingException {
 
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_PROPRIETARY);
-        apdu.setIns(CommandApdu.INS_READ_RECORD_B2);
+        apdu.setCla(ISO7816.CLA_PROPRIETARY);
+        apdu.setIns(ISO7816.INS_READ_RECORD_B2);
         apdu.setP1((byte) 0x00);
         apdu.setP2((byte) 0x00);
         apdu.setData(title.getBytes());
 
         byte[] apduResponse = apdu.sendApdu();
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
-        if (swValue == ResponseApdu.SW_NO_FURTHER_QUALIFICATION) {
+        if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
             return ByteArrayConverter.byteArrayToInt(ResponseApdu
                     .getResponseData(apduResponse));
         } else {

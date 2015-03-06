@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import org.simalliance.openmobileapi.internal.ErrorStrings;
 import org.simalliance.openmobileapi.util.CommandApdu;
+import org.simalliance.openmobileapi.util.ISO7816;
 import org.simalliance.openmobileapi.util.ResponseApdu;
 
 /**
@@ -90,15 +91,15 @@ public class AuthenticationProvider extends Provider {
                     ErrorStrings.paramNull("pin"));
         }
 
-        if (pin.length == 0 || pin.length > CommandApdu.MAX_DATA_LENGTH) {
+        if (pin.length == 0 || pin.length > ISO7816.MAX_COMMAND_DATA_LENGTH) {
             throw new IllegalArgumentException(
                     ErrorStrings.paramInvalidArrayLength("pin"));
         }
 
         // Prepare and send the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_VERIFY_20);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_VERIFY_20);
         apdu.setP1((byte) 0x00);
         byte p2 = (byte) pinID.getID();
         if (pinID.isLocal()) {
@@ -112,43 +113,43 @@ public class AuthenticationProvider extends Provider {
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
-            return true;
-        case ResponseApdu.SW_63_NO_INFO:
-            // ISO/IEC 7816-4 7.5.1: "In this group of commands, SW1-SW2 set to
-            // 6300 or 63CX indicates that the verification failed [...]"
-            return false;
-        case ResponseApdu.SW_AUTH_METHOD_BLOCKED:
-            // PIN is blocked.
-            return false;
-        case ResponseApdu.SW_REF_DATA_NOT_USABLE:
-            // PIN is blocked.
-            return false;
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
-            throw new UnsupportedOperationException();
-        case ResponseApdu.SW_INCORRECT_P1P2:
-            // Wrong PIN ID.
-            // TODO: should be an IllegalReferenceError
-            throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_REF_NOT_FOUND:
-            // Wrong PIN ID.
-            // TODO: should be an IllegalReferenceError
-            throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_WRONG_PARAMETERS_P1P2:
-            // Wrong PIN ID.
-            // TODO: should be an IllegalReferenceError
-            throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
-            throw new UnsupportedOperationException();
-        default:
-            // Check if SW is between 63C0 and 63CF
-            if (ResponseApdu.SW_CTR_MIN <= swValue
-                    && swValue <= ResponseApdu.SW_CTR_MAX) {
+            case ISO7816.SW_NO_FURTHER_QUALIFICATION:
+                return true;
+            case ISO7816.SW_63_NO_INFO:
+                // ISO/IEC 7816-4 7.5.1: "In this group of commands, SW1-SW2 set to
+                // 6300 or 63CX indicates that the verification failed [...]"
                 return false;
-            } else {
-                throw new IOException(
-                        ErrorStrings.unexpectedStatusWord(swValue));
-            }
+            case ISO7816.SW_AUTH_METHOD_BLOCKED:
+                // PIN is blocked.
+                return false;
+            case ISO7816.SW_REF_DATA_NOT_USABLE:
+                // PIN is blocked.
+                return false;
+            case ISO7816.SW_FUNC_NOT_SUPPORTED:
+                throw new UnsupportedOperationException();
+            case ISO7816.SW_INCORRECT_P1P2:
+                // Wrong PIN ID.
+                // TODO: should be an IllegalReferenceError
+                throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
+            case ISO7816.SW_REF_NOT_FOUND:
+                // Wrong PIN ID.
+                // TODO: should be an IllegalReferenceError
+                throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
+            case ISO7816.SW_WRONG_PARAMETERS_P1P2:
+                // Wrong PIN ID.
+                // TODO: should be an IllegalReferenceError
+                throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
+            case ISO7816.SW_INS_NOT_SUPPORTED:
+                throw new UnsupportedOperationException();
+            default:
+                // Check if SW is between 63C0 and 63CF
+                if (ISO7816.SW_CTR_MIN <= swValue
+                        && swValue <= ISO7816.SW_CTR_MAX) {
+                    return false;
+                } else {
+                    throw new IOException(
+                            ErrorStrings.unexpectedStatusWord(swValue));
+                }
         }
     }
 
@@ -205,8 +206,8 @@ public class AuthenticationProvider extends Provider {
 
         // Prepare the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_CHANGE_REF_DATA);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_CHANGE_REF_DATA);
         apdu.setP1((byte) 0x00);
         byte p2 = (byte) pinID.getID();
         if (pinID.isLocal()) {
@@ -223,38 +224,38 @@ public class AuthenticationProvider extends Provider {
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             // Everything is OK.
             break;
-        case ResponseApdu.SW_63_NO_INFO:
+        case ISO7816.SW_63_NO_INFO:
             // ISO/IEC 7816-4 7.5.1: "In this group of commands, SW1-SW2 set to
             // 6300 or 63CX indicates that the verification failed [...]"
             throw new SecurityException(ErrorStrings.PIN_WRONG);
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_AUTH_METHOD_BLOCKED:
+        case ISO7816.SW_AUTH_METHOD_BLOCKED:
             // PIN is blocked.
             throw new SecurityException(ErrorStrings.PIN_BLOCKED);
-        case ResponseApdu.SW_REF_DATA_NOT_USABLE:
+        case ISO7816.SW_REF_DATA_NOT_USABLE:
             // PIN is blocked.
             throw new SecurityException(ErrorStrings.PIN_BLOCKED);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
-        case ResponseApdu.SW_INCORRECT_P1P2:
+        case ISO7816.SW_INCORRECT_P1P2:
             // Wrong PIN ID.
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_WRONG_PARAMETERS_P1P2:
+        case ISO7816.SW_WRONG_PARAMETERS_P1P2:
             // Wrong PIN ID.
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
         default:
             // Check if SW is between 63C0 and 63CF
-            if (ResponseApdu.SW_CTR_MIN <= swValue
-                    && swValue <= ResponseApdu.SW_CTR_MAX) {
+            if (ISO7816.SW_CTR_MIN <= swValue
+                    && swValue <= ISO7816.SW_CTR_MAX) {
                 // oldPin is wrong
                 throw new SecurityException(ErrorStrings.PIN_WRONG);
             } else {
@@ -315,8 +316,8 @@ public class AuthenticationProvider extends Provider {
 
         // Prepare and send the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_RESET_RETRY_CTR);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_RESET_RETRY_CTR);
         // P1 depends on whether user wants to set a new PIN or only the
         // retry counter.
         if (newPin != null) {
@@ -349,37 +350,37 @@ public class AuthenticationProvider extends Provider {
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(response);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             // Everything is OK.
             break;
-        case ResponseApdu.SW_63_NO_INFO:
+        case ISO7816.SW_63_NO_INFO:
             // ISO/IEC 7816-4 7.5.1: "In this group of commands, SW1-SW2 set to
             // 6300 or 63CX indicates that the verification failed [...]"
             throw new SecurityException(ErrorStrings.PIN_WRONG);
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_AUTH_METHOD_BLOCKED:
+        case ISO7816.SW_AUTH_METHOD_BLOCKED:
             // PIN is blocked.
             throw new SecurityException(ErrorStrings.PIN_BLOCKED);
-        case ResponseApdu.SW_REF_DATA_NOT_USABLE:
+        case ISO7816.SW_REF_DATA_NOT_USABLE:
             // PIN is blocked.
             throw new SecurityException(ErrorStrings.PIN_BLOCKED);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
-        case ResponseApdu.SW_INCORRECT_P1P2:
+        case ISO7816.SW_INCORRECT_P1P2:
             // Wrong PIN ID.
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_WRONG_PARAMETERS_P1P2:
+        case ISO7816.SW_WRONG_PARAMETERS_P1P2:
             // Wrong PIN ID.
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
         default:
-            if (ResponseApdu.SW_CTR_MIN <= swValue
-                    && swValue <= ResponseApdu.SW_CTR_MAX) {
+            if (ISO7816.SW_CTR_MIN <= swValue
+                    && swValue <= ISO7816.SW_CTR_MAX) {
                 // resetPin is wrong
                 throw new SecurityException(ErrorStrings.PIN_WRONG);
             } else {
@@ -419,8 +420,8 @@ public class AuthenticationProvider extends Provider {
 
         // Prepare and send the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_VERIFY_20);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_VERIFY_20);
         apdu.setP1((byte) 0x00);
         byte p2 = (byte) pinID.getID();
         if (pinID.isLocal()) {
@@ -433,35 +434,35 @@ public class AuthenticationProvider extends Provider {
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(response);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             // This means that no PIN verification is required,
             // so we can't get the retry counter.
             throw new UnsupportedOperationException();
-        case ResponseApdu.SW_63_NO_INFO:
+        case ISO7816.SW_63_NO_INFO:
             // ISO/IEC 7816-4 7.5.1: "In this group of commands, SW1-SW2 set to
             // 6300 or 63CX indicates that the verification failed [...]"
             throw new SecurityException(ErrorStrings.PIN_WRONG);
-        case ResponseApdu.SW_AUTH_METHOD_BLOCKED:
+        case ISO7816.SW_AUTH_METHOD_BLOCKED:
             // PIN is blocked.
             throw new SecurityException(ErrorStrings.PIN_BLOCKED);
-        case ResponseApdu.SW_REF_DATA_NOT_USABLE:
+        case ISO7816.SW_REF_DATA_NOT_USABLE:
             // PIN is blocked.
             throw new SecurityException(ErrorStrings.PIN_BLOCKED);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
-        case ResponseApdu.SW_INCORRECT_P1P2:
+        case ISO7816.SW_INCORRECT_P1P2:
             // Wrong PIN ID.
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_WRONG_PARAMETERS_P1P2:
+        case ISO7816.SW_WRONG_PARAMETERS_P1P2:
             // Wrong PIN ID.
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
         default:
-            if (ResponseApdu.SW_CTR_MIN <= swValue
-                    && swValue <= ResponseApdu.SW_CTR_MAX) {
+            if (ISO7816.SW_CTR_MIN <= swValue
+                    && swValue <= ISO7816.SW_CTR_MAX) {
                 // Get the last 4 bits of the SW (63CX)
                 return (int) swValue & 0x000F;
             } else {
@@ -503,7 +504,7 @@ public class AuthenticationProvider extends Provider {
         }
 
         if (pin != null) {
-            if (pin.length == 0 || pin.length > CommandApdu.MAX_DATA_LENGTH) {
+            if (pin.length == 0 || pin.length > ISO7816.MAX_COMMAND_DATA_LENGTH) {
                 throw new IllegalArgumentException(
                         ErrorStrings.paramInvalidArrayLength("pin"));
             }
@@ -511,8 +512,8 @@ public class AuthenticationProvider extends Provider {
 
         // Prepare and send the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_ENABLE_VERIF_REQ);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_ENABLE_VERIF_REQ);
         if (pin != null) {
             apdu.setP1((byte) 0x00);
         } else {
@@ -532,21 +533,21 @@ public class AuthenticationProvider extends Provider {
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             // Everything is OK.
             break;
-        case ResponseApdu.SW_63_NO_INFO:
+        case ISO7816.SW_63_NO_INFO:
             // Verification failed
             throw new SecurityException(ErrorStrings.PIN_WRONG);
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_AUTH_METHOD_BLOCKED:
+        case ISO7816.SW_AUTH_METHOD_BLOCKED:
             throw new SecurityException(ErrorStrings.AUTH_METHOD_BLOCKED);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException(
                     ErrorStrings.OPERATION_NOT_SUPORTED);
-        case ResponseApdu.SW_INCORRECT_P1P2:
+        case ISO7816.SW_INCORRECT_P1P2:
             if (pin != null) {
                 // pinID is wrong
                 // TODO: should be an IllegalReferenceError
@@ -562,10 +563,10 @@ public class AuthenticationProvider extends Provider {
                         "Either pinID is wrong, or this pin does not "
                         + "support activation with pin = null.");
             }
-        case ResponseApdu.SW_REF_NOT_FOUND:
+        case ISO7816.SW_REF_NOT_FOUND:
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_WRONG_PARAMETERS_P1P2:
+        case ISO7816.SW_WRONG_PARAMETERS_P1P2:
             if (pin != null) {
                 // pinID is wrong
                 // TODO: should be an IllegalReferenceError
@@ -581,12 +582,12 @@ public class AuthenticationProvider extends Provider {
                         "Either pinID is wrong, or this pin does not "
                         + "support activation with pin = null.");
             }
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException(
                     ErrorStrings.OPERATION_NOT_SUPORTED);
         default:
-            if (ResponseApdu.SW_CTR_MIN <= swValue
-                    && swValue <= ResponseApdu.SW_CTR_MAX) {
+            if (ISO7816.SW_CTR_MIN <= swValue
+                    && swValue <= ISO7816.SW_CTR_MAX) {
                 throw new SecurityException(ErrorStrings.PIN_WRONG);
             } else {
                 throw new IOException(
@@ -629,7 +630,7 @@ public class AuthenticationProvider extends Provider {
         }
 
         if (pin != null) {
-            if (pin.length == 0 || pin.length > CommandApdu.MAX_DATA_LENGTH) {
+            if (pin.length == 0 || pin.length > ISO7816.MAX_COMMAND_DATA_LENGTH) {
                 throw new IllegalArgumentException(
                         ErrorStrings.paramInvalidArrayLength("pin"));
             }
@@ -637,8 +638,8 @@ public class AuthenticationProvider extends Provider {
 
         // Prepare and send the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_DISABLE_VERIF_REQ);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_DISABLE_VERIF_REQ);
         if (pin != null) {
             apdu.setP1((byte) 0x00);
         } else {
@@ -658,37 +659,37 @@ public class AuthenticationProvider extends Provider {
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             // Everything is OK.
             break;
-        case ResponseApdu.SW_63_NO_INFO:
+        case ISO7816.SW_63_NO_INFO:
             // ISO/IEC 7816-4 7.5.1: "In this group of commands, SW1-SW2 set to
             // 6300 or 63CX indicates that the verification failed [...]"
             throw new SecurityException(ErrorStrings.PIN_WRONG);
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_AUTH_METHOD_BLOCKED:
+        case ISO7816.SW_AUTH_METHOD_BLOCKED:
             // PIN is blocked.
             throw new SecurityException(ErrorStrings.PIN_BLOCKED);
-        case ResponseApdu.SW_REF_DATA_NOT_USABLE:
+        case ISO7816.SW_REF_DATA_NOT_USABLE:
             // PIN is blocked.
             throw new SecurityException(ErrorStrings.PIN_BLOCKED);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
-        case ResponseApdu.SW_INCORRECT_P1P2:
+        case ISO7816.SW_INCORRECT_P1P2:
             // Wrong PIN ID.
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_WRONG_PARAMETERS_P1P2:
+        case ISO7816.SW_WRONG_PARAMETERS_P1P2:
             // Wrong PIN ID.
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.PIN_REF_NOT_FOUND);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
         default:
-            if (ResponseApdu.SW_CTR_MIN <= swValue
-                    && swValue <= ResponseApdu.SW_CTR_MAX) {
+            if (ISO7816.SW_CTR_MIN <= swValue
+                    && swValue <= ISO7816.SW_CTR_MAX) {
                 throw new SecurityException(ErrorStrings.PIN_WRONG);
             } else {
                 throw new IOException(

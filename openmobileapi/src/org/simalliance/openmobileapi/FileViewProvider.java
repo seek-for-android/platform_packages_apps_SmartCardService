@@ -23,6 +23,7 @@ import org.simalliance.openmobileapi.internal.ByteArrayConverter;
 import org.simalliance.openmobileapi.internal.ErrorStrings;
 import org.simalliance.openmobileapi.internal.TlvEntryWrapper;
 import org.simalliance.openmobileapi.util.CommandApdu;
+import org.simalliance.openmobileapi.util.ISO7816;
 import org.simalliance.openmobileapi.util.ResponseApdu;
 
 /**
@@ -657,7 +658,7 @@ public class FileViewProvider extends Provider {
                         ErrorStrings.paramNull("data"));
             }
 
-            if (data.length == 0 || data.length > CommandApdu.MAX_DATA_LENGTH) {
+            if (data.length == 0 || data.length > ISO7816.MAX_COMMAND_DATA_LENGTH) {
                 throw new IllegalArgumentException(
                         ErrorStrings.paramInvalidArrayLength("data"));
             }
@@ -774,8 +775,8 @@ public class FileViewProvider extends Provider {
 
         // Form and send the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_SELECT);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_SELECT);
         if (fromCurrentDF) {
             apdu.setP1((byte) 0x09);
         } else {
@@ -788,17 +789,17 @@ public class FileViewProvider extends Provider {
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(responseApdu);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return new FCP(ResponseApdu.getResponseData(responseApdu));
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
-        case ResponseApdu.SW_FILE_OR_APP_NOT_FOUND:
+        case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.FILE_NOT_FOUND);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
         default:
             throw new IOException(ErrorStrings.unexpectedStatusWord(swValue));
@@ -843,8 +844,8 @@ public class FileViewProvider extends Provider {
 
         // Form and send the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_SELECT);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_SELECT);
         apdu.setP1((byte) 0x00);
         apdu.setP2((byte) 0x04);
         byte[] data = new byte[FID_LENGTH];
@@ -855,20 +856,20 @@ public class FileViewProvider extends Provider {
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(responseApdu);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return new FCP(ResponseApdu.getResponseData(responseApdu));
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_WRONG_DATA:
+        case ISO7816.SW_WRONG_DATA:
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.FILE_NOT_FOUND);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
-        case ResponseApdu.SW_FILE_OR_APP_NOT_FOUND:
+        case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.FILE_NOT_FOUND);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
         default:
             throw new IOException(ErrorStrings.unexpectedStatusWord(swValue));
@@ -902,8 +903,8 @@ public class FileViewProvider extends Provider {
 
         // Form and send the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_SELECT);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_SELECT);
         apdu.setP1((byte) 0x03);
         apdu.setP2((byte) 0x04);
         apdu.setLE((byte) 0x00);
@@ -912,15 +913,15 @@ public class FileViewProvider extends Provider {
         // Parse response
         int swValue = ResponseApdu.getResponseStatusWordValue(responseApdu);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return new FCP(ResponseApdu.getResponseData(responseApdu));
-        case ResponseApdu.SW_FILE_OR_APP_NOT_FOUND:
+        case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.FILE_NOT_FOUND);
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
         default:
             throw new IOException(ErrorStrings.unexpectedStatusWord(swValue));
@@ -973,8 +974,8 @@ public class FileViewProvider extends Provider {
 
         // Prepare and send the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_READ_RECORD_B2);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_READ_RECORD_B2);
         apdu.setP1((byte) recNumber);
         // SFI represents the most significant 5 bits
         apdu.setP2((byte) ((sfi << 3) | 4));
@@ -984,19 +985,19 @@ public class FileViewProvider extends Provider {
         // Handle the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return new Record(
                     recNumber,
                     ResponseApdu.getResponseData(apduResponse));
-        case ResponseApdu.SW_COMMAND_INCOMPATIBLE:
+        case ISO7816.SW_COMMAND_INCOMPATIBLE:
             throw new IllegalStateException(ErrorStrings.NO_RECORD_BASED_FILE);
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException(
                     ErrorStrings.OPERATION_NOT_SUPORTED);
-        case ResponseApdu.SW_FILE_OR_APP_NOT_FOUND:
+        case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
             if (sfi == CURRENT_FILE) {
                 throw new IllegalStateException(
                         ErrorStrings.FILE_NOT_FOUND);
@@ -1005,10 +1006,10 @@ public class FileViewProvider extends Provider {
             throw new IllegalArgumentException(
                     ErrorStrings.FILE_NOT_FOUND);
             }
-        case ResponseApdu.SW_RECORD_NOT_FOUND:
+        case ISO7816.SW_RECORD_NOT_FOUND:
             // If the record is not found, return null.
             return null;
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException(
                     ErrorStrings.OPERATION_NOT_SUPORTED);
         default:
@@ -1059,8 +1060,8 @@ public class FileViewProvider extends Provider {
         CommandApdu apdu = new CommandApdu(getChannel());
         byte[] apduResponse = {};
         if (rec.getNumber() == APPEND_RECORD) {
-            apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-            apdu.setIns(CommandApdu.INS_APPEND_RECORD);
+            apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+            apdu.setIns(ISO7816.INS_APPEND_RECORD);
             apdu.setP1((byte) 0x00);
             // SFI is most significant 5 bits
             apdu.setP2((byte) ((sfi << 3) | 0));
@@ -1068,8 +1069,8 @@ public class FileViewProvider extends Provider {
         } else {
             // Try to update record. If record is not found, try appending it.
             // Prepare and send the APDU
-            apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-            apdu.setIns(CommandApdu.INS_UPDATE_RECORD_DC);
+            apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+            apdu.setIns(ISO7816.INS_UPDATE_RECORD_DC);
             apdu.setP1((byte) rec.getNumber());
             // SFI is most significant 5 bits
             apdu.setP2((byte) ((sfi << 3) | 4));
@@ -1080,23 +1081,23 @@ public class FileViewProvider extends Provider {
         // Handle the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return;
-        case ResponseApdu.SW_WRONG_LENGTH:
+        case ISO7816.SW_WRONG_LENGTH:
             throw new IllegalArgumentException(ErrorStrings.WRONG_LENGTH);
-        case ResponseApdu.SW_MEMORY_FAILURE:
+        case ISO7816.SW_MEMORY_FAILURE:
             throw new IllegalStateException(ErrorStrings.MEMORY_FAILURE);
-        case ResponseApdu.SW_COMMAND_INCOMPATIBLE:
+        case ISO7816.SW_COMMAND_INCOMPATIBLE:
             throw new IllegalStateException(ErrorStrings.NO_RECORD_BASED_FILE);
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_COMMAND_NOT_ALLOWED:
+        case ISO7816.SW_COMMAND_NOT_ALLOWED:
             throw new IllegalStateException(ErrorStrings.NO_CURRENT_FILE);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException(
                     ErrorStrings.OPERATION_NOT_SUPORTED);
-        case ResponseApdu.SW_FILE_OR_APP_NOT_FOUND:
+        case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
             if (sfi == CURRENT_FILE) {
                 throw new IllegalStateException(
                         ErrorStrings.NO_CURRENT_FILE);
@@ -1105,11 +1106,11 @@ public class FileViewProvider extends Provider {
                 throw new IllegalArgumentException(
                         ErrorStrings.FILE_NOT_FOUND);
             }
-        case ResponseApdu.SW_RECORD_NOT_FOUND:
+        case ISO7816.SW_RECORD_NOT_FOUND:
             throw new IllegalArgumentException(ErrorStrings.RECORD_NOT_FOUND);
-        case ResponseApdu.SW_NOT_ENOUGH_MEMORY:
+        case ISO7816.SW_NOT_ENOUGH_MEMORY:
             throw new IllegalStateException(ErrorStrings.NOT_ENOUGH_MEMORY);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException(
                     ErrorStrings.OPERATION_NOT_SUPORTED);
         default:
@@ -1118,8 +1119,8 @@ public class FileViewProvider extends Provider {
             // successful change of memory state, but after an internal retry
             // routine; 'X' > '0' encodes the number of retries; 'X' = '0'
             // means that no counter is provided.
-            if (ResponseApdu.SW_CTR_MIN <= swValue
-            && swValue <= ResponseApdu.SW_CTR_MAX) {
+            if (ISO7816.SW_CTR_MIN <= swValue
+            && swValue <= ISO7816.SW_CTR_MAX) {
                 return;
             } else {
                 throw new IOException(
@@ -1173,15 +1174,15 @@ public class FileViewProvider extends Provider {
         }
 
         if (searchPattern.length == 0
-                || searchPattern.length > CommandApdu.MAX_DATA_LENGTH) {
+                || searchPattern.length > ISO7816.MAX_COMMAND_DATA_LENGTH) {
             throw new IllegalArgumentException(
                     ErrorStrings.paramInvalidArrayLength("searchPattern"));
         }
 
         // Form the APDU.
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_SEARCH_RECORD);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_SEARCH_RECORD);
         // Start search from Rec #1
         apdu.setP1((byte) 0x01);
         // SFI is most significant 5 bits
@@ -1194,7 +1195,7 @@ public class FileViewProvider extends Provider {
         // Handle the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             byte[] responseData = ResponseApdu.getResponseData(apduResponse);
             if (responseData.length > 0) {
                 int[] recordNumbers = new int[responseData.length];
@@ -1208,20 +1209,20 @@ public class FileViewProvider extends Provider {
             } else {
                 return null;
             }
-        case ResponseApdu.SW_COMMAND_INCOMPATIBLE:
+        case ISO7816.SW_COMMAND_INCOMPATIBLE:
             throw new IllegalStateException(ErrorStrings.NO_RECORD_BASED_FILE);
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_COMMAND_NOT_ALLOWED:
+        case ISO7816.SW_COMMAND_NOT_ALLOWED:
             throw new IllegalStateException(ErrorStrings.NO_CURRENT_FILE);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
                 throw new UnsupportedOperationException(
                         ErrorStrings.OPERATION_NOT_SUPORTED);
-        case ResponseApdu.SW_FILE_OR_APP_NOT_FOUND:
+        case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.FILE_NOT_FOUND);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException(
                     ErrorStrings.OPERATION_NOT_SUPORTED);
         default:
@@ -1283,8 +1284,8 @@ public class FileViewProvider extends Provider {
 
         // Form the APDU
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_READ_BINARY_B0);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_READ_BINARY_B0);
         if (sfi == CURRENT_FILE) {
             if (offset > OFFSET_LONG_MAX_VALUE) {
                 throw new IllegalArgumentException(
@@ -1319,22 +1320,22 @@ public class FileViewProvider extends Provider {
         // Handle the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return ResponseApdu.getResponseData(apduResponse);
-        case ResponseApdu.SW_COMMAND_INCOMPATIBLE:
+        case ISO7816.SW_COMMAND_INCOMPATIBLE:
             // Not a binary file
             throw new IllegalStateException(
                     ErrorStrings.NO_TRANSPARENT_FILE);
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_COMMAND_NOT_ALLOWED:
+        case ISO7816.SW_COMMAND_NOT_ALLOWED:
             // No file selected
             throw new IllegalStateException(
                     ErrorStrings.NO_CURRENT_FILE);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
-        case ResponseApdu.SW_FILE_OR_APP_NOT_FOUND:
+        case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
             if (sfi == CURRENT_FILE) {
                 throw new IllegalStateException(
                         ErrorStrings.FILE_NOT_FOUND);
@@ -1343,7 +1344,7 @@ public class FileViewProvider extends Provider {
             throw new IllegalArgumentException(
                     ErrorStrings.FILE_NOT_FOUND);
             }
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
         default:
             throw new IOException(ErrorStrings.unexpectedStatusWord(swValue));
@@ -1391,7 +1392,7 @@ public class FileViewProvider extends Provider {
         }
 
         if (data.length == 0
-                || data.length > CommandApdu.MAX_DATA_LENGTH
+                || data.length > ISO7816.MAX_COMMAND_DATA_LENGTH
                 || data.length != length) {
             throw new IllegalArgumentException(
                     ErrorStrings.paramInvalidArrayLength("data"));
@@ -1414,8 +1415,8 @@ public class FileViewProvider extends Provider {
         }
 
         CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(CommandApdu.CLA_INTERINDUSTRY);
-        apdu.setIns(CommandApdu.INS_UPDATE_BINARY_D6);
+        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
+        apdu.setIns(ISO7816.INS_UPDATE_BINARY_D6);
         if (sfi == CURRENT_FILE) {
             if (offset > OFFSET_LONG_MAX_VALUE) {
                 throw new IllegalArgumentException(
@@ -1440,22 +1441,22 @@ public class FileViewProvider extends Provider {
 
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
-        case ResponseApdu.SW_NO_FURTHER_QUALIFICATION:
+        case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return;
-        case ResponseApdu.SW_COMMAND_INCOMPATIBLE:
+        case ISO7816.SW_COMMAND_INCOMPATIBLE:
             // Not a binary file
             throw new IllegalStateException(
                     ErrorStrings.NO_TRANSPARENT_FILE);
-        case ResponseApdu.SW_SECURITY_STATUS_NOT_SATISFIED:
+        case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
-        case ResponseApdu.SW_COMMAND_NOT_ALLOWED:
+        case ISO7816.SW_COMMAND_NOT_ALLOWED:
             // No file selected
             throw new IllegalStateException(
                     ErrorStrings.NO_CURRENT_FILE);
-        case ResponseApdu.SW_FUNC_NOT_SUPPORTED:
+        case ISO7816.SW_FUNC_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
-        case ResponseApdu.SW_FILE_OR_APP_NOT_FOUND:
+        case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
             if (sfi == CURRENT_FILE) {
                 throw new IllegalStateException(
                         ErrorStrings.FILE_NOT_FOUND);
@@ -1464,10 +1465,10 @@ public class FileViewProvider extends Provider {
             throw new IllegalArgumentException(
                     ErrorStrings.FILE_NOT_FOUND);
             }
-        case ResponseApdu.SW_WRONG_PARAMETERS_P1P2:
+        case ISO7816.SW_WRONG_PARAMETERS_P1P2:
             throw new IllegalArgumentException(
                     ErrorStrings.OFFSET_OUTSIDE_EF);
-        case ResponseApdu.SW_INS_NOT_SUPPORTED:
+        case ISO7816.SW_INS_NOT_SUPPORTED:
             throw new UnsupportedOperationException();
         default:
             throw new IOException(ErrorStrings.unexpectedStatusWord(swValue));

@@ -27,143 +27,6 @@ import org.simalliance.openmobileapi.internal.ErrorStrings;
 public class CommandApdu {
 
     /**
-     * CLA values.
-     */
-
-    /**
-     * Interindustry class value.
-     */
-    public static final byte CLA_INTERINDUSTRY  = (byte) 0x00;
-    /**
-     * Proprietary class value.
-     */
-    public static final byte CLA_PROPRIETARY    = (byte) 0x80;
-
-    /**
-     * ISO instruction values.
-     */
-
-    /**
-     * ISO APPEND RECORD instruction value.
-     */
-    public static final byte INS_APPEND_RECORD      = (byte) 0xE2;
-    /**
-     * ISO CHANGE REFERENCE DATA instruction value.
-     */
-    public static final byte INS_CHANGE_REF_DATA    = (byte) 0x24;
-    /**
-     * ISO ENABLE VERIFICAITION REQUIREMENT instruction value.
-     */
-    public static final byte INS_ENABLE_VERIF_REQ   = (byte) 0x28;
-    /**
-     * ISO DISABLE VERIFICATION REQUIREMENT instruction value.
-     */
-    public static final byte INS_DISABLE_VERIF_REQ  = (byte) 0x26;
-    /**
-     * ISO READ BINARY instruction value (0xB0).
-     */
-    public static final byte INS_READ_BINARY_B0     = (byte) 0xB0;
-    /**
-     * ISO READ BINARY instruction value (0xB1).
-     */
-    public static final byte INS_READ_BINARY_B1     = (byte) 0xB1;
-    /**
-     * ISO READ RECORD instruction value (0xB2).
-     */
-    public static final byte INS_READ_RECORD_B2     = (byte) 0xB2;
-    /**
-     * ISO READ RECORD instruction value (0xB3).
-     */
-    public static final byte INS_READ_RECORD_B3     = (byte) 0xB3;
-    /**
-     * ISO RESET RETRY COUNTER instruction value.
-     */
-    public static final byte INS_RESET_RETRY_CTR    = (byte) 0x2C;
-    /**
-     * ISO SEARCH RECORD instruction value.
-     */
-    public static final byte INS_SEARCH_RECORD      = (byte) 0xA2;
-    /**
-     * ISO SELECT instruction value.
-     */
-    public static final byte INS_SELECT             = (byte) 0xA4;
-    /**
-     * ISO UPDATE BINARY instruction value (0xD6).
-     */
-    public static final byte INS_UPDATE_BINARY_D6   = (byte) 0xD6;
-    /**
-     * ISO UPDATE RECORD instruction value (0xDC).
-     */
-    public static final byte INS_UPDATE_RECORD_DC   = (byte) 0xDC;
-    /**
-     * ISO VERIFY instruction value (0x20).
-     */
-    public static final byte INS_VERIFY_20          = (byte) 0x20;
-    /**
-     * ISO VERIFY instruction value (0x21).
-     */
-    public static final byte INS_VERIFY_21          = (byte) 0x21;
-    /**
-     * ISO WRITE BINARY instruction value (0xD0).
-     */
-    public static final byte INS_WRITE_BINARY_D0    = (byte) 0xD0;
-    /**
-     * ISO WRITE BINARY instruction value (0xD1).
-     */
-    public static final byte INS_WRITE_BINARY_D1    = (byte) 0xD1;
-    /**
-     * ISO WRITE RECORD instruction value.
-     */
-    public static final byte INS_WRITE_RECORD       = (byte) 0xD2;
-
-    /**
-     * Secure Storage INS values.
-     */
-
-    /**
-     * SIM Alliance Secure Storage Applet instruction values.
-     */
-
-    /**
-     * SIM Alliance Secure Storage PING SS APPLET instruction value.
-     */
-    public static final byte INS_PING_SS_APPLET = (byte) 0xAA;
-    /**
-     * SIM Alliance Secure Storage CREATE SS ENTRY instruction value.
-     */
-    public static final byte INS_CREATE_SS_ENTRY = (byte) 0xE0;
-    /**
-     * SIM Alliance Secure Storage DELETE ALL SS ENTRIES instruction value.
-     */
-    public static final byte INS_DELETE_ALL_SS_ENTRIES = (byte) 0xE5;
-    /**
-     * SIM Alliance Secure Storage DELETE SS ENTRY instruction value.
-     */
-    public static final byte INS_DELETE_SS_ENTRY = (byte) 0xE4;
-    /**
-     * SIM Alliance Secure Storage GET SS ENTRY DATA instruction value.
-     */
-    public static final byte INS_GET_SS_ENTRY_DATA = (byte) 0xCA;
-    /**
-     * SIM Alliance Secure Storage GET SS ENTRY ID instruction value.
-     */
-    public static final byte INS_GET_SS_ENTRY_ID = (byte) 0xB2;
-    /**
-     * SIM Alliance Secure Storage SELECT SS ENTRY instruction value.
-     */
-    public static final byte INS_SELECT_SS_ENTRY = (byte) 0xA5;
-    /**
-     * SIM Alliance Secure Storage PUT SS ENTRY DATA instruction value.
-     */
-    public static final byte INS_PUT_SS_ENTRY_DATA = (byte) 0xDA;
-
-    /**
-     * The maximum value of the data field of an APDU.
-     * TODO: Extended data length APDUs not supported.
-     */
-    public static final int MAX_DATA_LENGTH = 255;
-
-    /**
      * The channel over which the APDU will be sent.
      */
     private Channel mChannel;
@@ -352,7 +215,7 @@ public class CommandApdu {
         if (data == null) {
             throw new IllegalArgumentException(ErrorStrings.paramNull("data"));
         }
-        if (data.length > MAX_DATA_LENGTH) {
+        if (data.length > ISO7816.MAX_COMMAND_DATA_LENGTH) {
             throw new IllegalArgumentException(
                     ErrorStrings.paramInvalidArrayLength("data"));
         }
@@ -369,7 +232,7 @@ public class CommandApdu {
      * @throws IllegalArgumentException if the Le value is invalid.
      */
     public void setLE(int le) throws IllegalArgumentException {
-        if ((le > CommandApdu.MAX_DATA_LENGTH) || (le < 0)) {
+        if ((le > ISO7816.MAX_COMMAND_DATA_LENGTH) || (le < 0)) {
             throw new IllegalArgumentException(
                     ErrorStrings.paramInvalidValue("le"));
         }

@@ -136,6 +136,15 @@ public class Reader {
         if (mService == null || !mService.isConnected()) {
             throw new IllegalStateException("service is not connected");
         }
+		synchronized (mLock) {
+            SmartcardError error = new SmartcardError();
+            try {
+                mReader.closeSessions(error);
+            } catch (RemoteException e) {
+                throw new IllegalStateException(e.getMessage());
+            }
+            SEService.checkForException(error);
+        }
     }
 
     // ******************************************************************

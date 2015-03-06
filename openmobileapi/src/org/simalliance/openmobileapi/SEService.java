@@ -181,7 +181,7 @@ public class SEService {
      */
     public void shutdown() {
         synchronized (mLock) {
-            if (mSmartcardService != null) {
+            if (mSmartcardService != null && mReaders != null) {
                 for (Reader reader : mReaders.values()) {
                     try {
                         reader.closeSessions();

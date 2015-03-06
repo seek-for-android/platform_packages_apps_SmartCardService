@@ -97,18 +97,13 @@ public class AuthenticationProvider extends Provider {
         }
 
         // Prepare and send the APDU
-        CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
-        apdu.setIns(ISO7816.INS_VERIFY_20);
-        apdu.setP1((byte) 0x00);
         byte p2 = (byte) pinID.getID();
         if (pinID.isLocal()) {
             // Set first bit to 1 to indicate that it is a local pin
             p2 = (byte) (p2 | 0x80);
         }
-        apdu.setP2(p2);
-        apdu.setData(pin);
-        byte[] apduResponse = apdu.sendApdu();
+        CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_VERIFY_20, (byte) 0x00, p2, pin);
+        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
 
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
@@ -205,21 +200,17 @@ public class AuthenticationProvider extends Provider {
         // will be done by setData
 
         // Prepare the APDU
-        CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
-        apdu.setIns(ISO7816.INS_CHANGE_REF_DATA);
-        apdu.setP1((byte) 0x00);
         byte p2 = (byte) pinID.getID();
         if (pinID.isLocal()) {
             // Set first bit to 1 to indicate that is a local pin
             p2 = (byte) (p2 | 0x80);
         }
-        apdu.setP2(p2);
         byte[] data = new byte[oldPin.length + newPin.length];
         System.arraycopy(oldPin, 0, data, 0, oldPin.length);
         System.arraycopy(newPin, 0, data, oldPin.length, newPin.length);
-        apdu.setData(data);
-        byte[] apduResponse = apdu.sendApdu();
+
+        CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_CHANGE_REF_DATA, (byte) 0x00, p2, data);
+        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
 
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
@@ -315,22 +306,19 @@ public class AuthenticationProvider extends Provider {
         // setData
 
         // Prepare and send the APDU
-        CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
-        apdu.setIns(ISO7816.INS_RESET_RETRY_CTR);
         // P1 depends on whether user wants to set a new PIN or only the
         // retry counter.
+        byte p1 = 0;
         if (newPin != null) {
-            apdu.setP1((byte) 0x00);
+            p1 = (byte) 0x00;
         } else {
-            apdu.setP1((byte) 0x01);
+            p1 = (byte) 0x01;
         }
         byte p2 = (byte) pinID.getID();
         if (pinID.isLocal()) {
             // Set first bit to 1 to indicate that it is a local pin
             p2 = (byte) (p2 | 0x80);
         }
-        apdu.setP2(p2);
         byte[] data;
         // Data will be different depending on whether user wants to reset
         // PIN or only reset the retry counter.
@@ -344,8 +332,8 @@ public class AuthenticationProvider extends Provider {
         if (newPin != null) {
             System.arraycopy(newPin, 0, data, resetPin.length, newPin.length);
         }
-        apdu.setData(data);
-        byte[] response = apdu.sendApdu();
+        CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_RESET_RETRY_CTR, p1, p2, data);
+        byte[] response = getChannel().transmit(apdu.toByteArray());
 
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(response);
@@ -419,17 +407,13 @@ public class AuthenticationProvider extends Provider {
         }
 
         // Prepare and send the APDU
-        CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
-        apdu.setIns(ISO7816.INS_VERIFY_20);
-        apdu.setP1((byte) 0x00);
         byte p2 = (byte) pinID.getID();
         if (pinID.isLocal()) {
             // Set first bit to 1 to indicate that is a local pin
             p2 = (byte) (p2 | 0x80);
         }
-        apdu.setP2(p2);
-        byte[] response = apdu.sendApdu();
+        CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_VERIFY_20, (byte) 0x00, p2);
+        byte[] response = getChannel().transmit(apdu.toByteArray());
 
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(response);
@@ -511,25 +495,20 @@ public class AuthenticationProvider extends Provider {
         }
 
         // Prepare and send the APDU
-        CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
-        apdu.setIns(ISO7816.INS_ENABLE_VERIF_REQ);
-        if (pin != null) {
-            apdu.setP1((byte) 0x00);
-        } else {
-            apdu.setP1((byte) 0x01);
-        }
         byte p2 = (byte) pinID.getID();
         if (pinID.isLocal()) {
             // Set first bit to 1 to indicate that is a local pin
             p2 = (byte) (p2 | 0x80);
         }
-        apdu.setP2(p2);
+        CommandApdu apdu = null;
         if (pin != null) {
-            apdu.setData(pin);
+            apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_ENABLE_VERIF_REQ, (byte) 0x00, p2, pin);
+        } else {
+            apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_ENABLE_VERIF_REQ, (byte) 0x01, p2);
         }
-        byte[] apduResponse = apdu.sendApdu();
 
+
+        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
         switch (swValue) {
@@ -637,24 +616,21 @@ public class AuthenticationProvider extends Provider {
         }
 
         // Prepare and send the APDU
-        CommandApdu apdu = new CommandApdu(getChannel());
-        apdu.setCla(ISO7816.CLA_INTERINDUSTRY);
-        apdu.setIns(ISO7816.INS_DISABLE_VERIF_REQ);
-        if (pin != null) {
-            apdu.setP1((byte) 0x00);
-        } else {
-            apdu.setP1((byte) 0x01);
-        }
         byte p2 = (byte) pinID.getID();
         if (pinID.isLocal()) {
             // Set first bit to 1 to indicate that is a local pin
             p2 = (byte) (p2 | 0x80);
         }
-        apdu.setP2(p2);
+
+        CommandApdu apdu = null;
+
         if (pin != null) {
-            apdu.setData(pin);
+            apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_DISABLE_VERIF_REQ, (byte) 0x00, p2, pin);
+        } else {
+            apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_DISABLE_VERIF_REQ, (byte) 0x01, p2);
         }
-        byte[] apduResponse = apdu.sendApdu();
+
+        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
 
         // Parse the response
         int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);

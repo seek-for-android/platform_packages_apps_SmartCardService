@@ -16,247 +16,346 @@
 
 package org.simalliance.openmobileapi.util;
 
-import java.io.IOException;
-
-import org.simalliance.openmobileapi.Channel;
-import org.simalliance.openmobileapi.internal.ErrorStrings;
-
 /**
- * Class that wraps the functionality for forming and sending APDUs.
+ * This object represents a command APDU as specified by ISO/IEC 7816.
+ *
+ * @author Giesecke & Devrient
+ *
  */
 public class CommandApdu {
 
     /**
-     * The channel over which the APDU will be sent.
-     */
-    private Channel mChannel;
-
-    /**
-     * The value of the CLA field.
+     * CLA field of command APDU.
      */
     private byte mCla;
 
     /**
-     * The value of the INS field.
+     * INS field of command APDU.
      */
     private byte mIns;
 
     /**
-     * The value of the P1 field.
+     * P1 field of command APDU.
      */
     private byte mP1;
 
     /**
-     * The value of the P2 field.
+     * P2 field of command APDU.
      */
     private byte mP2;
+
     /**
-     * The value of the Data field.
+     * DATA field of command APDU.
      */
     private byte[] mData;
-    /**
-     * The value of the Le field.
-     */
-    private int mLe;
 
     /**
-     * Indicate presence of CLA field in the APDU.
+     * Lc field of command APDU.
      */
-    private boolean isClaPresent;
+    private Integer mLc;
 
     /**
-     * Indicate presence of INS field in the APDU.
+     * Le field of command APDU.
      */
-    private boolean isInsPresent;
+    private Integer mLe;
 
     /**
-     * Indicate presence of P1 field in the APDU.
+     * Override default constructor.
      */
-    private boolean isP1Present;
-
-    /**
-     * Indicate presence of P2 field in the APDU.
-     */
-    private boolean isP2Present;
-
-    /**
-     * Indicate presence of Data field in the APDU.
-     */
-    private boolean isDataPresent;
-
-    /**
-     * Indicate presence of Le field in the APDU.
-     */
-    private boolean isLePresent;
-
-    /**
-     * Initializes a new instance of the class.
-     *
-     * @param channel The Channel to be used.
-     */
-    public CommandApdu(Channel channel) {
-        mChannel = channel;
-        isClaPresent = false;
-        isInsPresent = false;
-        isP1Present = false;
-        isP2Present = false;
-        isDataPresent = false;
-        isLePresent = false;
+    private CommandApdu() {
     }
 
     /**
-     * Decides whether present fields will form a valid APDU.
+     * Creates a case 1 Command APDU.
      *
-     * @return true if an APDU can be formed, false otherwise.
+     * @param cla Value of CLA field.
+     * @param ins Value of INS field.
+     * @param p1 Value of P1 field.
+     * @param p2 Value of P2 field.
+     *
+     * @throws IllegalArgumentException if CLA or INS are invalid.
      */
-    private boolean canApduBeFormed() {
-        return isClaPresent && isInsPresent && isP1Present && isP2Present;
+    public CommandApdu(byte cla, byte ins, byte p1, byte p2)
+            throws IllegalArgumentException {
+        setCla(cla);
+        setIns(ins);
+        setP1(p1);
+        setP2(p2);
     }
 
     /**
-     * Forms a byte array that represents an APDU with the already set fields in
-     * the class.
+     * Creates a case 2 Command APDU.
      *
-     * @return A byte array representing an APDU with the fields of this APDU
-     *         instance. null if the field combination is invalid.
+     * @param cla Value of CLA field.
+     * @param ins Value of INS field.
+     * @param p1 Value of P1 field.
+     * @param p2 Value of P2 field.
+     * @param le Value of Le field.
      *
-     * @throws IllegalArgumentException if the APDU has an invalid format.
+     * @throws IllegalArgumentException if CLA, INS or Le are invalid.
      */
-    public byte[] formApdu() throws IllegalArgumentException {
-        if (canApduBeFormed()) {
-            byte[] apdu;
-            if (!isDataPresent && !isLePresent) {
-                apdu = new byte[4];
-                apdu[0] = mCla;
-                apdu[1] = mIns;
-                apdu[2] = mP1;
-                apdu[3] = mP2;
-            } else if (!isDataPresent && isLePresent) {
-                apdu = new byte[5];
-                apdu[0] = mCla;
-                apdu[1] = mIns;
-                apdu[2] = mP1;
-                apdu[3] = mP2;
-                apdu[4] = (byte) mLe;
-            } else if (isDataPresent && !isLePresent) {
-                apdu = new byte[5 + mData.length];
-                apdu[0] = mCla;
-                apdu[1] = mIns;
-                apdu[2] = mP1;
-                apdu[3] = mP2;
-                apdu[4] = (byte) mData.length;
-                System.arraycopy(mData, 0, apdu, 5, mData.length);
-            } else {
-                apdu = new byte[6 + mData.length];
-                apdu[0] = mCla;
-                apdu[1] = mIns;
-                apdu[2] = mP1;
-                apdu[3] = mP2;
-                apdu[4] = (byte) mData.length;
-                System.arraycopy(mData, 0, apdu, 5, mData.length);
-                apdu[apdu.length - 1] = (byte) mLe;
+    public CommandApdu(byte cla, byte ins, byte p1, byte p2, int le)
+            throws IllegalArgumentException {
+        setCla(cla);
+        setIns(ins);
+        setP1(p1);
+        setP2(p2);
+        setLe(le);
+    }
+
+    /**
+     * Creates case 3 Command APDU.
+     *
+     * @param cla Value of CLA field.
+     * @param ins Value of INS field.
+     * @param p1 Value of P1 field.
+     * @param p2 Value of P2 field.
+     * @param data Value of DATA field.
+     *
+     * @throws IllegalArgumentException if CLA, INS or Data are invalid.
+     */
+    public CommandApdu(byte cla, byte ins, byte p1, byte p2, byte[] data)
+            throws IllegalArgumentException {
+        setCla(cla);
+        setIns(ins);
+        setP1(p1);
+        setP2(p2);
+        setData(data);
+    }
+
+    /**
+     * Creates a case 4 Command APDU.
+     *
+     * @param cla Value of CLA field.
+     * @param ins Value of INS field.
+     * @param p1 Value of P1 field.
+     * @param p2 Value of P2 field.
+     * @param data Value of DATA field.
+     * @param le Value of Le field.
+     *
+     * @throws IllegalArgumentException if CLA, INS, Data or Le are invalid.
+     */
+    public CommandApdu(
+            byte cla, byte ins, byte p1, byte p2, byte[] data, int le)
+            throws IllegalArgumentException {
+        setCla(cla);
+        setIns(ins);
+        setP1(p1);
+        setP2(p2);
+        setData(data);
+        setLe(le);
+    }
+
+    /**
+     * Creates a command APDU object from a byte Array.
+     *
+     * @param cmdApduAsByteArray Command APDU as byte array.
+     *
+     * @throws IllegalArgumentException If cmdApduAsByteArray does not
+     * contain a valid APDU.
+     */
+    public CommandApdu(byte[] cmdApduAsByteArray)
+            throws IllegalArgumentException {
+        if (cmdApduAsByteArray.length < ISO7816.CMD_APDU_LENGTH_CASE1) {
+            throw new IllegalArgumentException("Invalid length for command ("
+                    + cmdApduAsByteArray.length + ").");
+        }
+
+        setCla(cmdApduAsByteArray[ISO7816.OFFSET_CLA]);
+        setIns(cmdApduAsByteArray[ISO7816.OFFSET_INS]);
+        setP1(cmdApduAsByteArray[ISO7816.OFFSET_P1]);
+        setP2(cmdApduAsByteArray[ISO7816.OFFSET_P2]);
+
+        if (cmdApduAsByteArray.length == ISO7816.CMD_APDU_LENGTH_CASE1) {
+            // Case 1 APDU -- Nothing left to be done
+        } else if (cmdApduAsByteArray.length == ISO7816.CMD_APDU_LENGTH_CASE2) {
+            // Case 2 APDU
+            setLe((int) 0x0FF & cmdApduAsByteArray[ISO7816.OFFSET_P3]);
+        } else {
+            // Case 3 or Case 4 APDU
+
+            // Get Lc and check that it's not 0
+            setLc((int) 0x0FF & cmdApduAsByteArray[ISO7816.OFFSET_P3]);
+            if (mLc == 0) {
+                throw new IllegalArgumentException(
+                        "Lc can't be 0");
             }
 
-            return apdu;
+            if (cmdApduAsByteArray.length
+                    == ISO7816.CMD_APDU_LENGTH_CASE3_WITHOUT_DATA + mLc) {
+                // Case 3 APDU -- nothing to be done here
+            } else if (cmdApduAsByteArray.length
+                    == ISO7816.CMD_APDU_LENGTH_CASE4_WITHOUT_DATA + mLc) {
+                // Case 4 APDU -- get Le:
+                setLe((int) 0x0FF
+                        & cmdApduAsByteArray[cmdApduAsByteArray.length - 1]);
+            } else {
+                // Lc has a wrong value!
+                throw new IllegalArgumentException(
+                        "Unexpected value of Lc (" + mLc + ")");
+            }
+
+            // Store the data
+            mData = new byte[mLc];
+            System.arraycopy(
+                    cmdApduAsByteArray,
+                    ISO7816.OFFSET_DATA,
+                    mData,
+                    0,
+                    mLc);
+        }
+    }
+
+    /**
+     * Returns this Command APDU as a byte array.
+     *
+     * @return Command APDU as byte array.
+     */
+    public byte[] toByteArray() {
+        byte[] array;
+        if (mData == null && mLe == null) {
+            // APDU Case 1
+            array = new byte[ISO7816.CMD_APDU_LENGTH_CASE1];
+            array[ISO7816.OFFSET_CLA] = mCla;
+            array[ISO7816.OFFSET_INS] = mIns;
+            array[ISO7816.OFFSET_P1] = mP1;
+            array[ISO7816.OFFSET_P2] = mP2;
+        } else if (mData == null && mLe != null) {
+            // APDU Case 2
+            array = new byte[ISO7816.CMD_APDU_LENGTH_CASE2];
+            array[ISO7816.OFFSET_CLA] = mCla;
+            array[ISO7816.OFFSET_INS] = mIns;
+            array[ISO7816.OFFSET_P1] = mP1;
+            array[ISO7816.OFFSET_P2] = mP2;
+            array[ISO7816.OFFSET_P3] = (byte) (mLe & 0x0FF);
+        } else if (mData != null && mLe == null) {
+            // APDU Case 3
+            array = new byte[ISO7816.CMD_APDU_LENGTH_CASE3_WITHOUT_DATA + mLc];
+            array[ISO7816.OFFSET_CLA] = mCla;
+            array[ISO7816.OFFSET_INS] = mIns;
+            array[ISO7816.OFFSET_P1] = mP1;
+            array[ISO7816.OFFSET_P2] = mP2;
+            array[ISO7816.OFFSET_P3] = (byte) (mLc & 0x0FF);
+            System.arraycopy(
+                    mData, 0, array, ISO7816.OFFSET_DATA, mData.length);
         } else {
-            throw new IllegalArgumentException("Invalid APDU format.");
+            // APDU Case 4
+            array = new byte[ISO7816.CMD_APDU_LENGTH_CASE4_WITHOUT_DATA + mLc];
+            array[ISO7816.OFFSET_CLA] = mCla;
+            array[ISO7816.OFFSET_INS] = mIns;
+            array[ISO7816.OFFSET_P1] = mP1;
+            array[ISO7816.OFFSET_P2] = mP2;
+            array[ISO7816.OFFSET_P3] = (byte) (mLc & 0x0FF);
+            System.arraycopy(
+                    mData, 0, array, ISO7816.OFFSET_DATA, mData.length);
+            array[array.length - 1] = (byte) (mLe & 0x0FF);
         }
+
+        return array;
     }
 
+
     /**
-     * Sets the CLA field.
+     * Private method - Set CLA byte and check if it is a valid value or not.
      *
-     * @param cla The value to be set.
+     * @param cla Value of CLA field.
+     *
+     * @throws IllegalArgumentException if CLA is invalid.
      */
-    public void setCla(byte cla) {
+    private void setCla(byte cla) throws IllegalArgumentException {
+        if (cla == (byte) 0xFF) {
+            // cla has a wrong value!
+            throw new IllegalArgumentException(
+                    "Invalid value of CLA (" + Integer.toHexString(cla) + ")");
+        }
         mCla = cla;
-        isClaPresent = true;
     }
 
     /**
-     * Sets the INS field.
+     * Private method - Set INS byte and check if it is a valid value or not.
      *
-     * @param ins The value to be set.
+     * @param ins Value of INS field.
+     *
+     * @throws IllegalArgumentException if INS is invalid.
      */
-    public void setIns(byte ins) {
-        mIns = ins;
-        isInsPresent = true;
-    }
-
-    /**
-     * Sets the P1 field.
-     *
-     * @param p1 The value to be set.
-     */
-    public void setP1(byte p1) {
-        mP1 = p1;
-        isP1Present = true;
-    }
-
-    /**
-     * Sets the P2 field.
-     *
-     * @param p2 The value to be set.
-     */
-    public void setP2(byte p2) {
-        mP2 = p2;
-        isP2Present = true;
-    }
-
-    /**
-     * Sets the Data field.
-     *
-     * @param data The value to be set. Lc is automatically generated
-     *
-     * @throws IllegalArgumentException if the data length is invalid or data is
-     *         null.
-     */
-    public void setData(byte[] data) throws IllegalArgumentException {
-        if (data == null) {
-            throw new IllegalArgumentException(ErrorStrings.paramNull("data"));
+    private void setIns(byte ins) throws IllegalArgumentException {
+        if ((ins & 0x0F0) == 0x60 || ((ins & 0x0F0) == 0x90)) {
+            // ins has a wrong value!
+            throw new IllegalArgumentException(
+                    "Invalid value of INS (" + Integer.toHexString(ins) + "). "
+                            + "0x6X and 0x9X are not valid values");
         }
+        mIns = ins;
+    }
+
+    /**
+     * Private method - Set p1 byte.
+     *
+     * @param p1 Value of P1 field.
+     */
+    private void setP1(byte p1) {
+        mP1 = p1;
+    }
+
+    /**
+     * Private method - Set p2 byte.
+     *
+     * @param p2 Value of P2 field.
+     */
+    private void setP2(byte p2) {
+        mP2 = p2;
+    }
+
+    /**
+     * Private method - Set LC byte.
+     *
+     * @param lc Value of LC field.
+     */
+    private void setLc(int lc) {
+        mLc = lc;
+    }
+
+    /**
+     * Private method Set Data.
+     *
+     * @param data Value of APDU data.
+     * @throws IllegalArgumentException if Data is null, 0 or is too long.
+     */
+    private void setData(byte[] data) throws IllegalArgumentException {
+        if (data == null) {
+            throw new IllegalArgumentException(
+                    "Data must not be null.");
+        }
+
         if (data.length > ISO7816.MAX_COMMAND_DATA_LENGTH) {
             throw new IllegalArgumentException(
-                    ErrorStrings.paramInvalidArrayLength("data"));
+                    "Data too long.");
         }
 
-        mData = data;
-        isDataPresent = true;
-    }
-
-    /**
-     * Sets the Le field.
-     *
-     * @param le The value to be set.
-     *
-     * @throws IllegalArgumentException if the Le value is invalid.
-     */
-    public void setLE(int le) throws IllegalArgumentException {
-        if ((le > ISO7816.MAX_COMMAND_DATA_LENGTH) || (le < 0)) {
+        if (data.length == 0) {
             throw new IllegalArgumentException(
-                    ErrorStrings.paramInvalidValue("le"));
+                    "Data must not be empty.");
         }
 
-        mLe = le;
-        isLePresent = true;
+        setLc(data.length);
+
+        mData = new byte[data.length];
+        System.arraycopy(data, 0, mData, 0, data.length);
     }
 
     /**
-     * Sends the APDU over the specified channel.
+     * Private method - Set LE byte.
      *
-     * @return The SmartCard response.
+     * @param le Value of LE field.
      *
-     * @throws IllegalStateException if the channel is closed.
-     * @throws IllegalArgumentException if the APDU has an invalid format.
-     * @throws IOException Lower-level API exception.
+     * @throws IllegalArgumentException if Le is invalid.
      */
-    public byte[] sendApdu() throws IllegalStateException, IOException,
-            IllegalArgumentException {
+    private void setLe(int le) throws IllegalArgumentException {
 
-        if (mChannel.isClosed()) {
-            throw new IllegalStateException(ErrorStrings.CHANNEL_CLOSED);
-        } else {
-            return mChannel.transmit(formApdu());
+        if (le < 0 || le > ISO7816.MAX_RESPONSE_DATA_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Invalid value for le parameter (" + le + ").");
         }
+        mLe = le;
     }
 }

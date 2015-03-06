@@ -666,9 +666,9 @@ public class SecureStorageProvider extends Provider {
 
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, INS_DELETE_ALL_SS_ENTRIES, (byte) 0x00, (byte) 0x00);
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return;
@@ -810,8 +810,8 @@ public class SecureStorageProvider extends Provider {
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, INS_PING_SS_APPLET, (byte) 0x00, (byte) 0x00);
 
         try {
-            byte[] response = getChannel().transmit(apdu.toByteArray());
-            return ResponseApdu.getResponseStatusWordValue(response)
+            ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
+            return apduResponse.getSwValue()
                     == ISO7816.SW_NO_FURTHER_QUALIFICATION;
         } catch (Exception e) {
             return false;
@@ -834,11 +834,10 @@ public class SecureStorageProvider extends Provider {
         byte[] titleArray = title.getBytes();
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, INS_CREATE_SS_ENTRY, (byte) 0x00, (byte) 0x00, titleArray);
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
+        int swValue = apduResponse.getSwValue();
         if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
-            return ByteArrayConverter.byteArrayToInt(ResponseApdu
-                    .getResponseData(apduResponse));
+            return ByteArrayConverter.byteArrayToInt(apduResponse.getData());
         } else {
             throw new ProcessingException(swValue);
         }
@@ -860,9 +859,9 @@ public class SecureStorageProvider extends Provider {
         byte[] idArray = ByteArrayConverter.intToByteArray(id);
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, INS_DELETE_SS_ENTRY, idArray[0], idArray[1]);
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
             return true;
         } else if (swValue == ISO7816.SW_REF_NOT_FOUND) {
@@ -905,11 +904,10 @@ public class SecureStorageProvider extends Provider {
             break;
         }
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
+        int swValue = apduResponse.getSwValue();
         if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
-            return ByteArrayConverter.byteArrayToCharString(ResponseApdu
-                    .getResponseData(apduResponse));
+            return ByteArrayConverter.byteArrayToCharString(apduResponse.getData());
         } else {
             throw new ProcessingException(swValue);
         }
@@ -977,8 +975,8 @@ public class SecureStorageProvider extends Provider {
         }
 
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, INS_PUT_SS_ENTRY_DATA, mP1, (byte) 0x00, data);
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
+        int swValue = apduResponse.getSwValue();
         if (swValue != ISO7816.SW_NO_FURTHER_QUALIFICATION) {
             throw new ProcessingException(swValue);
         }
@@ -1030,11 +1028,11 @@ public class SecureStorageProvider extends Provider {
         }
 
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, INS_GET_SS_ENTRY_DATA, mP1, (byte) 0x00, 0);
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
-            return ResponseApdu.getResponseData(apduResponse);
+            return apduResponse.getData();
         } else {
             throw new ProcessingException(swValue);
         }
@@ -1054,12 +1052,12 @@ public class SecureStorageProvider extends Provider {
             throws IOException, ProcessingException {
 
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, ISO7816.INS_READ_RECORD_B2, (byte) 0x00, (byte) 0x00, title.getBytes());
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
-            return ByteArrayConverter.byteArrayToInt(ResponseApdu
-                    .getResponseData(apduResponse));
+            return ByteArrayConverter.byteArrayToInt(apduResponse
+                    .getData());
         } else {
             throw new ProcessingException(swValue);
         }

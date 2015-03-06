@@ -103,10 +103,10 @@ public class AuthenticationProvider extends Provider {
             p2 = (byte) (p2 | 0x80);
         }
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_VERIFY_20, (byte) 0x00, p2, pin);
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
         // Parse the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
             case ISO7816.SW_NO_FURTHER_QUALIFICATION:
                 return true;
@@ -210,10 +210,10 @@ public class AuthenticationProvider extends Provider {
         System.arraycopy(newPin, 0, data, oldPin.length, newPin.length);
 
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_CHANGE_REF_DATA, (byte) 0x00, p2, data);
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
         // Parse the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             // Everything is OK.
@@ -333,10 +333,10 @@ public class AuthenticationProvider extends Provider {
             System.arraycopy(newPin, 0, data, resetPin.length, newPin.length);
         }
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_RESET_RETRY_CTR, p1, p2, data);
-        byte[] response = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
         // Parse the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(response);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             // Everything is OK.
@@ -413,10 +413,10 @@ public class AuthenticationProvider extends Provider {
             p2 = (byte) (p2 | 0x80);
         }
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_VERIFY_20, (byte) 0x00, p2);
-        byte[] response = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
         // Parse the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(response);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             // This means that no PIN verification is required,
@@ -508,9 +508,9 @@ public class AuthenticationProvider extends Provider {
         }
 
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         // Parse the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             // Everything is OK.
@@ -630,10 +630,10 @@ public class AuthenticationProvider extends Provider {
             apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_DISABLE_VERIF_REQ, (byte) 0x01, p2);
         }
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
         // Parse the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             // Everything is OK.

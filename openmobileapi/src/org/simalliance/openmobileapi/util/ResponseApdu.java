@@ -16,73 +16,109 @@
 
 package org.simalliance.openmobileapi.util;
 
-import org.simalliance.openmobileapi.internal.ByteArrayConverter;
-import org.simalliance.openmobileapi.internal.ErrorStrings;
-
 /**
- * Class that wraps the functionality for dealing with APDU responses.
+ * This object represents a response APDU as specified by ISO/IEC 7816.
+ *
+ * @author Giesecke & Devrient
+ *
  */
-public final class ResponseApdu {
+public class ResponseApdu {
 
     /**
-     * Override default constructor to prevent instantiation.
+     * DATA field of response APDU.
      */
-    private ResponseApdu() {
-    }
+    private byte[] mData;
 
     /**
-     * Returns the data of a response APDU.
-     *
-     * @param responseApdu The APDU from which the data is wanted.
-     *
-     * @return The data of the specified response APDU.
-     *
-     * @throws IllegalArgumentException if the response does not have SW.
+     * STATUS WORD field of response APDU.
      */
-    public static byte[] getResponseData(byte[] responseApdu)
-            throws IllegalArgumentException {
-        if (responseApdu.length < 2) {
-            throw new IllegalArgumentException(ErrorStrings.APDU_BAD_RESPONSE);
+    private byte[] mSw;
+
+    /**
+     * Creates a response APDU.
+     *
+     * @param response The response APDU as a byte array.
+     */
+    public ResponseApdu(byte[] response) {
+        if (response == null) {
+            throw new IllegalArgumentException("Response must not be null.");
         }
-
-        byte[] responseData = new byte[responseApdu.length - 2];
-        System.arraycopy(responseApdu, 0, responseData, 0,
-                responseApdu.length - 2);
-        return responseData;
-    }
-
-    /**
-     * Returns the SW of a response APDU.
-     *
-     * @param responseApdu The APDU from which the SW is wanted.
-     *
-     * @return The SW of the specified response APDU.
-     *
-     * @throws IllegalArgumentException if the response does not have SW.
-     */
-    public static byte[] getResponseStatusWordBytes(byte[] responseApdu)
-            throws IllegalArgumentException {
-        if (responseApdu.length < 2) {
-            throw new IllegalArgumentException(ErrorStrings.APDU_BAD_RESPONSE);
+        if (response.length < ISO7816.RESP_APDU_LENGTH_SW
+                || response.length > ISO7816.MAX_RESPONSE_DATA_LENGTH
+                + ISO7816.RESP_APDU_LENGTH_SW) {
+            throw new IllegalArgumentException(
+                    "Invalid response length (" + response.length + ").");
         }
-
-        byte[] statusWord = new byte[2];
-        System.arraycopy(responseApdu, responseApdu.length - 2, statusWord, 0,
-                2);
-        return statusWord;
+        if (response.length > ISO7816.RESP_APDU_LENGTH_SW) {
+            mData = new byte[response.length - ISO7816.RESP_APDU_LENGTH_SW];
+            System.arraycopy(response, 0, mData, 0, mData.length);
+        }
+        mSw = new byte[ISO7816.RESP_APDU_LENGTH_SW];
+        System.arraycopy(response, response.length
+                        - ISO7816.RESP_APDU_LENGTH_SW, mSw, 0,
+                ISO7816.RESP_APDU_LENGTH_SW);
     }
 
     /**
-     * Returns the integer value of the StatusWord of a response APDU.
+     * Returns the DATA field of the response if present, null otherwise.
      *
-     * @param responseApdu The APDU from which the SW value is wanted.
-     *
-     * @return The value of the SW of the specified response APDU.
-     *
-     * @throws IllegalArgumentException if the response does not have SW.
+     * @return The DATA field of the response if present, null otherwise.
      */
-    public static int getResponseStatusWordValue(byte[] responseApdu)
-            throws IllegalArgumentException {
-        return ByteArrayConverter.byteArrayToInt(getResponseStatusWordBytes(responseApdu));
+    public byte[] getData() {
+        return mData;
+    }
+
+    /**
+     * Returns the STATUS WORD field of the response.
+     *
+     * @return The STATUS WORD field of the response.
+     */
+    public byte[] getSw() {
+        return mSw;
+    }
+
+    /**
+     * Returns the STATUS WORD field as int value.
+     *
+     * @return The STATUS WORD field as int value.
+     */
+    public int getSwValue() {
+        return ((mSw[0] & 0x0FF) << 8) + (mSw[1] & 0x0FF);
+    }
+
+    /**
+     * Returns true if the SW = 90 00, false otherwise.
+     *
+     * @return true if the SW = 90 00, false otherwise..
+     */
+    public boolean isSuccess() {
+        return getSwValue() == ISO7816.SW_NO_FURTHER_QUALIFICATION;
+    }
+
+    /**
+     * Returns true if the SW = 62 XX or SW = 63 XX, false otherwise.
+     *
+     * @return true if the SW = 62 XX or SW = 63 XX, false otherwise.
+     */
+    public boolean isWarning() {
+        return mSw[0] == ISO7816.SW1_62 || mSw[0] == ISO7816.SW1_63;
+    }
+
+    /**
+     * Returns the first byte of STATUS WORD field as int value.
+     *
+     * @return The first byte of STATUS WORD field as int value.
+     */
+    public int getSw1Value() {
+        return (int) 0x0FF & mSw[0];
+    }
+
+    /**
+     * Returns the second byte of STATUS WORD field as int value.
+     *
+     * @return The second byte of STATUS WORD field as int value.
+     */
+    public int getSw2Value() {
+        return (int) 0x0FF & mSw[1];
     }
 }

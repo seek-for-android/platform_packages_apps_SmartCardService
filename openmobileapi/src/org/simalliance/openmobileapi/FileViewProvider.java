@@ -782,13 +782,13 @@ public class FileViewProvider extends Provider {
         }
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_SELECT, p1, (byte) 0x04, pathByteArray);
 
-        byte[] responseApdu = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
         // Parse the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(responseApdu);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
-            return new FCP(ResponseApdu.getResponseData(responseApdu));
+            return new FCP(apduResponse.getData());
         case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
@@ -846,12 +846,12 @@ public class FileViewProvider extends Provider {
 
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_SELECT, (byte) 0x00, (byte) 0x04, data);
 
-        byte[] responseApdu = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         // Parse the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(responseApdu);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
-            return new FCP(ResponseApdu.getResponseData(responseApdu));
+            return new FCP(apduResponse.getData());
         case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
@@ -898,12 +898,12 @@ public class FileViewProvider extends Provider {
         // Form and send the APDU
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_SELECT, (byte) 0x03, (byte) 0x04, 0);
 
-        byte[] responseApdu = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         // Parse response
-        int swValue = ResponseApdu.getResponseStatusWordValue(responseApdu);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
-            return new FCP(ResponseApdu.getResponseData(responseApdu));
+            return new FCP(apduResponse.getData());
         case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
             // TODO: should be an IllegalReferenceError
             throw new IllegalArgumentException(ErrorStrings.FILE_NOT_FOUND);
@@ -964,14 +964,14 @@ public class FileViewProvider extends Provider {
         // Prepare and send the APDU
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_READ_RECORD_B2, (byte) recNumber, (byte) ((sfi << 3) | 4), 0);
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         // Handle the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return new Record(
                     recNumber,
-                    ResponseApdu.getResponseData(apduResponse));
+                    apduResponse.getData());
         case ISO7816.SW_COMMAND_INCOMPATIBLE:
             throw new IllegalStateException(ErrorStrings.NO_RECORD_BASED_FILE);
         case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
@@ -1049,9 +1049,9 @@ public class FileViewProvider extends Provider {
             apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_UPDATE_RECORD_DC, (byte) rec.getNumber(), (byte) ((sfi << 3) | 4), rec.getData());
         }
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         // Handle the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return;
@@ -1154,12 +1154,12 @@ public class FileViewProvider extends Provider {
         // Form the APDU.
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_SEARCH_RECORD, (byte) 0x01, (byte) ((sfi << 3) | 4), searchPattern, 0);
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         // Handle the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
-            byte[] responseData = ResponseApdu.getResponseData(apduResponse);
+            byte[] responseData = apduResponse.getData();
             if (responseData.length > 0) {
                 int[] recordNumbers = new int[responseData.length];
 
@@ -1278,12 +1278,12 @@ public class FileViewProvider extends Provider {
         // Send the APDU
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_READ_BINARY_B0, p1, p2, length);
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         // Handle the response
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
-            return ResponseApdu.getResponseData(apduResponse);
+            return apduResponse.getData();
         case ISO7816.SW_COMMAND_INCOMPATIBLE:
             // Not a binary file
             throw new IllegalStateException(
@@ -1400,8 +1400,8 @@ public class FileViewProvider extends Provider {
 
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_UPDATE_BINARY_D6, p1, p2, data);
 
-        byte[] apduResponse = getChannel().transmit(apdu.toByteArray());
-        int swValue = ResponseApdu.getResponseStatusWordValue(apduResponse);
+        ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
+        int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             return;

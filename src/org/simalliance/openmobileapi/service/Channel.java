@@ -23,7 +23,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
 
-import org.simalliance.openmobileapi.service.SmartcardService.SmartcardServiceSession;
+import org.simalliance.openmobileapi.service.SmartcardServiceSession;
 
 import android.util.Log;
 

@@ -22,7 +22,7 @@ package org.simalliance.openmobileapi.service;
 import android.content.ComponentName;
 import android.content.Context;
 
-import org.simalliance.openmobileapi.service.SmartcardService.SmartcardServiceSession;
+import org.simalliance.openmobileapi.service.SmartcardServiceSession;
 
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -699,7 +699,7 @@ public class Terminal {
                     // session is null
                     return null;
                 }
-                SmartcardServiceSession session = mService.new SmartcardServiceSession(this);
+                SmartcardServiceSession session = new SmartcardServiceSession(this, mContext);
                 mSessions.add(session);
 
                 return session;

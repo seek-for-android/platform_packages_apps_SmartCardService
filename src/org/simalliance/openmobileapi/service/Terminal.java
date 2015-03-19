@@ -19,14 +19,18 @@
 
 package org.simalliance.openmobileapi.service;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 
 import org.simalliance.openmobileapi.service.SmartcardServiceSession;
 
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.ResolveInfo;
+import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 
@@ -42,6 +46,7 @@ import java.util.Random;
 
 
 import android.content.pm.PackageManager;
+import android.util.Log;
 
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
@@ -54,6 +59,8 @@ public class Terminal {
 
     /** Random number generator used for handle creation. */
     static Random mRandom = new Random();
+
+    private static final String _TAG = "Terminal";
 
     protected Context mContext;
 
@@ -68,6 +75,11 @@ public class Terminal {
     protected ServiceConnection mTerminalConnection;
 
     protected byte[] mSelectResponse;
+
+    /* Async task */
+    InitialiseTask mInitialiseTask;
+
+    private BroadcastReceiver mSEReceiver;
 
     protected boolean mDefaultApplicationSelectedOnBasicChannel = true;
 
@@ -133,6 +145,8 @@ public class Terminal {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
                 mTerminalService = ITerminalService.Stub.asInterface(iBinder);
+                mInitialiseTask = new InitialiseTask();
+                mInitialiseTask.execute();
             }
 
             @Override
@@ -148,8 +162,103 @@ public class Terminal {
                 Context.BIND_AUTO_CREATE);
     }
 
+    private class InitialiseTask extends AsyncTask<Void, Void, Void> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+        }
+
+        @Override
+        protected Void doInBackground(Void... arg0) {
+
+            try {
+                initializeAccessControl(false);
+            } catch (Exception e) {
+                // do nothing since this is called where nobody can react.
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            registerSEStateChangedEvent();
+            mInitialiseTask = null;
+        }
+    }
+
+    public void registerSEStateChangedEvent() {
+        Log.v(_TAG, "register to SE state change event");
+        try {
+            IntentFilter intentFilter = new IntentFilter(
+                    mTerminalService.getSEChangeAction());
+            mSEReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    try {
+                        if (mTerminalService.getSEChangeAction().equals(intent
+                                .getAction())) {
+                            initializeAccessControl(
+                                    true);
+                        }
+                    }
+                    catch(RemoteException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            mContext.registerReceiver(mSEReceiver, intentFilter);
+        } catch(RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Initalizes Access Control. At least the refresh tag is read and if it
+     * differs to the previous one (e.g. is null) the all access rules are read.
+     *
+     * @param reset
+     */
+    public synchronized boolean initializeAccessControl(
+            boolean reset) {
+        boolean result = true;
+        Log.i(_TAG, "Initializing Access Control");
+
+        boolean isCardPresent;
+        try {
+            isCardPresent = isCardPresent();
+        } catch (Exception e) {
+            isCardPresent = false;
+
+        }
+
+        if (isCardPresent) {
+            Log.i(_TAG,
+                    "Initializing Access Control for "
+                            + getName());
+            if (reset) {
+                resetAccessControl();
+            }
+            result &= initializeAccessControl(true, new ISmartcardServiceCallback.Stub() {});
+        } else {
+            Log.i(_TAG, "NOT initializing Access Control for "
+                    + getName() + " SE not present.");
+        }
+
+        return result;
+    }
+
     public void onSmartcardServiceShutdown() {
         closeChannels();
+        // Cancel the inialization background task if still running
+        if (mInitialiseTask != null) {
+            mInitialiseTask.cancel(true);
+        }
+        mInitialiseTask = null;
+        mContext.unregisterReceiver(mSEReceiver);
+        mSEReceiver = null;
         mContext.unbindService(mTerminalConnection);
     }
 
@@ -691,8 +800,8 @@ public class Terminal {
 
             synchronized (mLock) {
                 try {
-                    mService.initializeAccessControl(
-                            Terminal.this.getName(), null);
+                    initializeAccessControl(
+                            false);
                 } catch (Exception e) {
                     Util.setError(error, e);
                     // Reader.openSession() will throw an IOException when

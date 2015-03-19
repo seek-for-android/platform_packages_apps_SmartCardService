@@ -92,4 +92,11 @@ interface ITerminalService {
      * @return
      */
     byte[] simIOExchange(in int fileID, in String filePath, in byte[] cmd, out SmartcardError error);
+
+    /**
+     * GetSEChangeAction of the terminal.
+     *
+     * @return the action when SE receive any change.
+     */
+    String getSEChangeAction();
 }

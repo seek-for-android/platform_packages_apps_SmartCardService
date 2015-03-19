@@ -19,23 +19,13 @@
 
 package org.simalliance.openmobileapi.service;
 
-import android.annotation.SuppressLint;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.os.AsyncTask;
-import android.os.Binder;
 import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -46,9 +36,6 @@ import org.simalliance.openmobileapi.service.security.ChannelAccess;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,19 +61,6 @@ public final class SmartcardService extends Service {
      */
     private Map<String, Terminal> mTerminals
         = new TreeMap<String, Terminal>();
-
-    /* Broadcast receivers */
-    private BroadcastReceiver mSimReceiver;
-    private BroadcastReceiver mNfcReceiver;
-    private BroadcastReceiver mMediaReceiver;
-
-    /* Async task */
-    InitialiseTask mInitialiseTask;
-
-    /**
-     * ServiceHandler use to load rules from the terminal.
-     */
-    private ServiceHandler mServiceHandler;
 
     public SmartcardService() {
         super();
@@ -114,12 +88,7 @@ public final class SmartcardService extends Service {
         HandlerThread thread = new HandlerThread("SmartCardServiceHandler");
         thread.start();
 
-        // Get the HandlerThread's Looper and use it for our Handler
-        mServiceHandler = new ServiceHandler(thread.getLooper());
-
         createTerminals();
-        mInitialiseTask = new InitialiseTask();
-        mInitialiseTask.execute();
     }
 
     @Override
@@ -147,210 +116,11 @@ public final class SmartcardService extends Service {
         }
     }
 
-    private class InitialiseTask extends AsyncTask<Void, Void, Void> {
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            
-        }
-
-        @Override
-        protected Void doInBackground(Void... arg0) {
-            
-            try {
-                initializeAccessControl(null, null);
-            } catch (Exception e) {
-                // do nothing since this is called where nobody can react.
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void result) {
-            super.onPostExecute(result);
-            Log.i(_TAG, "OnPostExecute()");
-            registerSimStateChangedEvent(getApplicationContext());
-            registerAdapterStateChangedEvent(getApplicationContext());
-            registerMediaMountedEvent(getApplicationContext());
-            mInitialiseTask = null;
-        }
-    }
-
-    private void registerSimStateChangedEvent(Context context) {
-        Log.v(_TAG, "register SIM_STATE_CHANGED event");
-
-        IntentFilter intentFilter = new IntentFilter(
-                "android.intent.action.SIM_STATE_CHANGED");
-        mSimReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if ("android.intent.action.SIM_STATE_CHANGED".equals(intent
-                        .getAction())) {
-                    final Bundle extras = intent.getExtras();
-                    final boolean simReady = (extras != null)
-                            && "READY".equals(extras.getString("ss"));
-                    final boolean simLoaded = (extras != null)
-                            && "LOADED".equals(extras.getString("ss"));
-                    if (simReady) {
-                        Log.i(_TAG, "SIM is ready. Checking access rules for"
-                                + " updates.");
-                        mServiceHandler.sendMessage(MSG_LOAD_UICC_RULES, 5);
-                    } else if (simLoaded) {
-                        Log.i(_TAG, "SIM is loaded. Checking access rules for"
-                                + " updates.");
-                        mServiceHandler.sendMessage(MSG_LOAD_UICC_RULES, 5);
-                    }
-                }
-            }
-        };
-
-        context.registerReceiver(mSimReceiver, intentFilter);
-    }
-
-    private void unregisterSimStateChangedEvent(Context context) {
-        if (mSimReceiver != null) {
-            Log.v(_TAG, "unregister SIM_STATE_CHANGED event");
-            context.unregisterReceiver(mSimReceiver);
-            mSimReceiver = null;
-        }
-    }
-
-    private void registerAdapterStateChangedEvent(Context context) {
-        Log.v(_TAG, "register ADAPTER_STATE_CHANGED event");
-
-        IntentFilter intentFilter = new IntentFilter(
-                "android.nfc.action.ADAPTER_STATE_CHANGED");
-        mNfcReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                final boolean nfcAdapterAction = intent.getAction().equals(
-                        "android.nfc.action.ADAPTER_STATE_CHANGED");
-                // Is NFC Adapter turned on?
-                final boolean nfcAdapterOn
-                    = nfcAdapterAction && intent.getIntExtra(
-                                "android.nfc.extra.ADAPTER_STATE", 1) == 3;
-                if (nfcAdapterOn) {
-                    Log.i(_TAG, "NFC Adapter is ON. Checking access rules for"
-                            + " updates.");
-                    mServiceHandler.sendMessage(MSG_LOAD_ESE_RULES, 5);
-                }
-            }
-        };
-        context.registerReceiver(mNfcReceiver, intentFilter);
-    }
-
-    private void unregisterAdapterStateChangedEvent(Context context) {
-        if (mNfcReceiver != null) {
-            Log.v(_TAG, "unregister ADAPTER_STATE_CHANGED event");
-            context.unregisterReceiver(mNfcReceiver);
-            mNfcReceiver = null;
-        }
-    }
-
-    private void registerMediaMountedEvent(Context context) {
-        Log.v(_TAG, "register MEDIA_MOUNTED event");
-
-        IntentFilter intentFilter = new IntentFilter(
-                "android.intent.action.MEDIA_MOUNTED");
-        mMediaReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                final boolean mediaMounted = intent.getAction().equals(
-                        "android.intent.action.MEDIA_MOUNTED");
-                if (mediaMounted) {
-                    Log.i(_TAG, "New Media is mounted. Checking access rules"
-                            + " for updates.");
-                    mServiceHandler.sendMessage(MSG_LOAD_SD_RULES, 5);
-                }
-            }
-        };
-        context.registerReceiver(mMediaReceiver, intentFilter);
-    }
-
-    private void unregisterMediaMountedEvent(Context context) {
-        if (mMediaReceiver != null) {
-            Log.v(_TAG, "unregister MEDIA_MOUNTED event");
-            context.unregisterReceiver(mMediaReceiver);
-            mMediaReceiver = null;
-        }
-    }
-
-    /**
-     * Initalizes Access Control. At least the refresh tag is read and if it
-     * differs to the previous one (e.g. is null) the all access rules are read.
-     *
-     * @param se
-     */
-    public boolean initializeAccessControl(
-            String se,
-            ISmartcardServiceCallback callback) {
-        return initializeAccessControl(false, se, callback);
-    }
-
-    public synchronized boolean initializeAccessControl(
-            boolean reset,
-            String se,
-            ISmartcardServiceCallback callback) {
-        boolean result = true;
-        Log.i(_TAG, "Initializing Access Control");
-
-        if (callback == null) {
-            callback = new ISmartcardServiceCallback.Stub() {
-            };
-        }
-
-        Collection<Terminal> col = mTerminals.values();
-        for (Terminal terminal : col) {
-            if (terminal == null) {
-
-                continue;
-            }
-
-            if (se == null || terminal.getName().startsWith(se)) {
-                boolean isCardPresent;
-                try {
-                    isCardPresent = terminal.isCardPresent();
-                } catch (Exception e) {
-                    isCardPresent = false;
-
-                }
-
-                if (isCardPresent) {
-                    Log.i(_TAG,
-                            "Initializing Access Control for "
-                                    + terminal.getName());
-                    if (reset) {
-                        terminal.resetAccessControl();
-                    }
-                    result &= terminal.initializeAccessControl(true, callback);
-                } else {
-                    Log.i(_TAG, "NOT initializing Access Control for "
-                            + terminal.getName() + " SE not present.");
-                }
-            }
-        }
-        return result;
-    }
-
     public void onDestroy() {
         Log.v(_TAG, " smartcard service onDestroy ...");
         for (Terminal terminal : mTerminals.values()) {
             terminal.onSmartcardServiceShutdown();
         }
-
-        // Cancel the inialization background task if still running
-        if (mInitialiseTask != null) {
-            mInitialiseTask.cancel(true);
-        }
-        mInitialiseTask = null;
-
-        // Unregister all the broadcast receivers
-        unregisterSimStateChangedEvent(getApplicationContext());
-        unregisterAdapterStateChangedEvent(getApplicationContext());
-        unregisterMediaMountedEvent(getApplicationContext());
-
-        mServiceHandler = null;
 
         Log.v(_TAG, Thread.currentThread().getName()
                 + " ... smartcard service onDestroy");
@@ -469,71 +239,4 @@ public final class SmartcardService extends Service {
             return null;
         }
     };
-
-    /*
-     * Handler Thread used to load and initiate ChannelAccess condition
-     */
-    public static final int MSG_LOAD_UICC_RULES = 1;
-    public static final int MSG_LOAD_ESE_RULES = 2;
-    public static final int MSG_LOAD_SD_RULES = 3;
-
-    public static final long WAIT_TIME = 1000;
-
-    private final class ServiceHandler extends Handler {
-
-        @SuppressLint("HandlerLeak")
-        public ServiceHandler(Looper looper) {
-            super(looper);
-        }
-
-        public void sendMessage(int what, int nbTries) {
-            mServiceHandler.removeMessages(what);
-            Message newMsg = mServiceHandler.obtainMessage(what, nbTries, 0);
-            mServiceHandler.sendMessage(newMsg);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            boolean result = true;
-
-            Log.i(_TAG, "Handle msg: what=" + msg.what + " nbTries="
-                    + msg.arg1);
-
-            switch (msg.what) {
-            case MSG_LOAD_UICC_RULES:
-                try {
-                    result = initializeAccessControl(
-                            true, _UICC_TERMINAL, null);
-                } catch (Exception e) {
-                    Log.e(_TAG, "Got exception:" + e);
-                }
-                break;
-
-            case MSG_LOAD_ESE_RULES:
-                try {
-                    result = initializeAccessControl(true, _eSE_TERMINAL, null);
-                } catch (Exception e) {
-                    Log.e(_TAG, "Got exception:" + e);
-                }
-                break;
-
-            case MSG_LOAD_SD_RULES:
-                try {
-                    result = initializeAccessControl(true, _SD_TERMINAL, null);
-                } catch (Exception e) {
-                    Log.e(_TAG, "Got exception:" + e);
-                }
-                break;
-            }
-
-            if (!result && msg.arg1 > 0) {
-                // Try to re-post the message
-                Log.e(_TAG, "Fail to load rules: Let's try another time ("
-                        + msg.arg1 + " remaining attempt");
-                Message newMsg = mServiceHandler.obtainMessage(msg.what,
-                        msg.arg1 - 1, 0);
-                mServiceHandler.sendMessageDelayed(newMsg, WAIT_TIME);
-            }
-        }
-    }
 }

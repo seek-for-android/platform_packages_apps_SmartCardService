@@ -18,7 +18,7 @@ package org.simalliance.openmobileapi;
 
 import java.io.IOException;
 
-import org.simalliance.openmobileapi.internal.ErrorStrings;
+import org.simalliance.openmobileapi.common.internal.ErrorStrings;
 
 /**
  * Instances of this class must be created by the applications to start a

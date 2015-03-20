@@ -14,7 +14,7 @@
  * the License.
  */
 
-package org.simalliance.openmobileapi.util;
+package org.simalliance.openmobileapi.common.util;
 
 /**
  * This object represents a response APDU as specified by ISO/IEC 7816.

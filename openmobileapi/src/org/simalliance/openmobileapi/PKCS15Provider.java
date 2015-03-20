@@ -21,12 +21,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.simalliance.openmobileapi.FileViewProvider.FCP;
-import org.simalliance.openmobileapi.internal.ByteArrayConverter;
-import org.simalliance.openmobileapi.internal.DerTlvCoder;
-import org.simalliance.openmobileapi.internal.DerTlvParser;
-import org.simalliance.openmobileapi.internal.ErrorStrings;
-import org.simalliance.openmobileapi.internal.OidParser;
-import org.simalliance.openmobileapi.internal.TlvEntryWrapper;
+import org.simalliance.openmobileapi.common.internal.ByteArrayConverter;
+import org.simalliance.openmobileapi.common.internal.DerTlvCoder;
+import org.simalliance.openmobileapi.common.internal.DerTlvParser;
+import org.simalliance.openmobileapi.common.internal.ErrorStrings;
+import org.simalliance.openmobileapi.common.internal.OidParser;
+import org.simalliance.openmobileapi.common.internal.TlvEntryWrapper;
 
 
 /**

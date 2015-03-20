@@ -14,7 +14,7 @@
  * the License.
  */
 
-package org.simalliance.openmobileapi.internal;
+package org.simalliance.openmobileapi.common.internal;
 
 // TODO: implement more type encoders.
 

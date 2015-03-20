@@ -16,7 +16,7 @@
 
 package org.simalliance.openmobileapi;
 
-import org.simalliance.openmobileapi.internal.ErrorStrings;
+import org.simalliance.openmobileapi.common.internal.ErrorStrings;
 
 /**
  * This Provider abstract class is the base class for all service layer classes.

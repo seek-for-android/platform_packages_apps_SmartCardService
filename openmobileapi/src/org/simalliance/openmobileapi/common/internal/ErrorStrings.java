@@ -14,7 +14,7 @@
  * the License.
  */
 
-package org.simalliance.openmobileapi.internal;
+package org.simalliance.openmobileapi.common.internal;
 
 /**
  * Class that contains the error strings that will be used throughout the APIs.

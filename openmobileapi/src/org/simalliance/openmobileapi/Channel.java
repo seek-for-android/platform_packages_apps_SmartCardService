@@ -25,7 +25,6 @@ import org.simalliance.openmobileapi.service.ISmartcardServiceChannel;
 import org.simalliance.openmobileapi.service.SmartcardError;
 
 import android.os.RemoteException;
-import android.util.Log;
 
 /**
  * Instances of this class represent an ISO7816-4 channel opened to a secure

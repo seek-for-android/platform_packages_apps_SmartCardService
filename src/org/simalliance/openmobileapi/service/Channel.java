@@ -23,8 +23,6 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
 
-import org.simalliance.openmobileapi.service.SmartcardServiceSession;
-
 import android.util.Log;
 
 
@@ -63,7 +61,7 @@ public class Channel implements IBinder.DeathRecipient {
     protected boolean mHasSelectedAid = false;
     protected byte[] mAid = null;
 
-    Channel(SmartcardServiceSession session,
+    Channel(Session.SmartcardServiceSession session,
             Terminal terminal,
             int channelNumber,
             ISmartcardServiceCallback callback) {
@@ -384,9 +382,9 @@ public class Channel implements IBinder.DeathRecipient {
      */
     final class SmartcardServiceChannel extends ISmartcardServiceChannel.Stub {
 
-        private final SmartcardServiceSession mSession;
+        private final Session.SmartcardServiceSession mSession;
 
-        public SmartcardServiceChannel(SmartcardServiceSession session) {
+        public SmartcardServiceChannel(Session.SmartcardServiceSession session) {
             mSession = session;
         }
 

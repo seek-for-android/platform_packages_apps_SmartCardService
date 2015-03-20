@@ -23,14 +23,11 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 
-import org.simalliance.openmobileapi.service.SmartcardServiceSession;
-
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.ResolveInfo;
 import android.os.AsyncTask;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 
@@ -301,7 +298,7 @@ public class Terminal {
      * @return a channel instance.
      */
     protected Channel createChannel(
-            SmartcardServiceSession session,
+            Session.SmartcardServiceSession session,
             int channelNumber,
             ISmartcardServiceCallback callback) {
         return new Channel(session, this, channelNumber, callback);
@@ -486,7 +483,7 @@ public class Terminal {
     }
 
     public synchronized Channel openBasicChannel(
-            SmartcardServiceSession session,
+            Session.SmartcardServiceSession session,
             ISmartcardServiceCallback callback)
                     throws CardException {
         if (callback == null) {
@@ -507,7 +504,7 @@ public class Terminal {
     }
 
     public Channel openBasicChannel(
-            SmartcardServiceSession session,
+            Session.SmartcardServiceSession session,
             byte[] aid,
             ISmartcardServiceCallback callback)
                     throws Exception {
@@ -533,7 +530,7 @@ public class Terminal {
     }
 
     public synchronized Channel openLogicalChannel(
-            SmartcardServiceSession session,
+            Session.SmartcardServiceSession session,
             ISmartcardServiceCallback callback)
                     throws Exception {
         if (callback == null) {
@@ -551,7 +548,7 @@ public class Terminal {
     }
 
     public synchronized Channel openLogicalChannel(
-            SmartcardServiceSession session,
+            Session.SmartcardServiceSession session,
             byte[] aid,
             ISmartcardServiceCallback callback)
                     throws Exception {
@@ -750,8 +747,8 @@ public class Terminal {
 
         protected final SmartcardService mService;
 
-        private final ArrayList<SmartcardServiceSession> mSessions
-            = new ArrayList<SmartcardServiceSession>();
+        private final ArrayList<Session.SmartcardServiceSession> mSessions
+            = new ArrayList<Session.SmartcardServiceSession>();
 
         private final Object mLock = new Object();
 
@@ -808,7 +805,8 @@ public class Terminal {
                     // session is null
                     return null;
                 }
-                SmartcardServiceSession session = new SmartcardServiceSession(this, mContext);
+                Session.SmartcardServiceSession session = new Session(this, mContext).
+                        new SmartcardServiceSession();
                 mSessions.add(session);
 
                 return session;
@@ -820,7 +818,7 @@ public class Terminal {
 
             Util.clearError(error);
             synchronized (mLock) {
-                for (SmartcardServiceSession session : mSessions) {
+                for (Session.SmartcardServiceSession session : mSessions) {
                     if (session != null && !session.isClosed()) {
                         session.closeChannels(error);
                         session.setClosed();
@@ -840,7 +838,7 @@ public class Terminal {
          * @throws CardException
          * @throws NullPointerException if Session is null
          */
-        synchronized void closeSession(SmartcardServiceSession session)
+        synchronized void closeSession(Session.SmartcardServiceSession session)
                 throws RemoteException, CardException {
             if (session == null) {
                 throw new NullPointerException("session is null");

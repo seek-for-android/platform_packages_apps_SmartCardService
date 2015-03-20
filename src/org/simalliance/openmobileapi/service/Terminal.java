@@ -75,8 +75,8 @@ public class Terminal {
 
     protected SmartcardService mService;
 
-    private final ArrayList<Session.SmartcardServiceSession> mSessions
-            = new ArrayList<Session.SmartcardServiceSession>();
+    private final ArrayList<Session> mSessions
+            = new ArrayList<Session>();
 
     private final Object mLock = new Object();
 
@@ -256,7 +256,7 @@ public class Terminal {
      * @return a channel instance.
      */
     protected Channel createChannel(
-            Session.SmartcardServiceSession session,
+            Session session,
             int channelNumber,
             ISmartcardServiceCallback callback) {
         return new Channel(session, this, channelNumber, callback);
@@ -441,7 +441,7 @@ public class Terminal {
     }
 
     public synchronized Channel openBasicChannel(
-            Session.SmartcardServiceSession session,
+            Session session,
             ISmartcardServiceCallback callback)
                     throws CardException {
         if (callback == null) {
@@ -462,7 +462,7 @@ public class Terminal {
     }
 
     public Channel openBasicChannel(
-            Session.SmartcardServiceSession session,
+            Session session,
             byte[] aid,
             ISmartcardServiceCallback callback)
                     throws Exception {
@@ -488,7 +488,7 @@ public class Terminal {
     }
 
     public synchronized Channel openLogicalChannel(
-            Session.SmartcardServiceSession session,
+            Session session,
             ISmartcardServiceCallback callback)
                     throws Exception {
         if (callback == null) {
@@ -506,7 +506,7 @@ public class Terminal {
     }
 
     public synchronized Channel openLogicalChannel(
-            Session.SmartcardServiceSession session,
+            Session session,
             byte[] aid,
             ISmartcardServiceCallback callback)
                     throws Exception {
@@ -756,11 +756,10 @@ public class Terminal {
                     // session is null
                     return null;
                 }
-                Session.SmartcardServiceSession session = new Session(this, mContext).
-                        new SmartcardServiceSession();
+                Session session = new Session(this, mContext);
                 mSessions.add(session);
 
-                return session;
+                return session.new SmartcardServiceSession();
             }
         }
 
@@ -769,7 +768,7 @@ public class Terminal {
 
             Util.clearError(error);
             synchronized (mLock) {
-                for (Session.SmartcardServiceSession session : mSessions) {
+                for (Session session : mSessions) {
                     if (session != null && !session.isClosed()) {
                         session.closeChannels(error);
                         session.setClosed();
@@ -789,7 +788,7 @@ public class Terminal {
          * @throws CardException
          * @throws NullPointerException if Session is null
          */
-        synchronized void closeSession(Session.SmartcardServiceSession session)
+        synchronized void closeSession(Session session)
                 throws RemoteException, CardException {
             if (session == null) {
                 throw new NullPointerException("session is null");

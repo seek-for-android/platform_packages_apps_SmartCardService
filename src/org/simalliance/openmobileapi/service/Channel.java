@@ -44,7 +44,7 @@ public class Channel implements IBinder.DeathRecipient {
 
     protected long mHandle;
 
-    protected ISmartcardServiceSession mSession;
+    protected Session mSession;
     protected Terminal mTerminal;
 
     protected byte[] mSelectResponse;
@@ -61,7 +61,7 @@ public class Channel implements IBinder.DeathRecipient {
     protected boolean mHasSelectedAid = false;
     protected byte[] mAid = null;
 
-    Channel(Session.SmartcardServiceSession session,
+    Channel(Session session,
             Terminal terminal,
             int channelNumber,
             ISmartcardServiceCallback callback) {
@@ -370,9 +370,9 @@ public class Channel implements IBinder.DeathRecipient {
      */
     final class SmartcardServiceChannel extends ISmartcardServiceChannel.Stub {
 
-        private final Session.SmartcardServiceSession mSession;
+        private final Session mSession;
 
-        public SmartcardServiceChannel(Session.SmartcardServiceSession session) {
+        public SmartcardServiceChannel(Session session) {
             mSession = session;
         }
 
@@ -411,7 +411,7 @@ public class Channel implements IBinder.DeathRecipient {
         @Override
         public ISmartcardServiceSession getSession()
                 throws RemoteException {
-            return Channel.this.mSession;
+            return mSession.new SmartcardServiceSession();
         }
 
         @Override

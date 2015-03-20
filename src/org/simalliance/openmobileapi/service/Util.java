@@ -58,6 +58,54 @@ public class Util {
         return str;
     }
 
+    /**
+     * Returns a concatenated response.
+     *
+     * @param r1 the first part of the response.
+     * @param r2 the second part of the response.
+     * @param length the number of bytes of the second part to be appended.
+     * @return a concatenated response.
+     */
+    static byte[] appendResponse(byte[] r1, byte[] r2, int length) {
+        byte[] rsp = new byte[r1.length + length];
+        System.arraycopy(r1, 0, rsp, 0, r1.length);
+        System.arraycopy(r2, 0, rsp, r1.length, length);
+        return rsp;
+    }
+
+    /**
+     * Creates a formatted exception message.
+     *
+     * @param commandName the name of the command. <code>null</code> if not
+     *            specified.
+     * @param sw the response status word.
+     * @return a formatted exception message.
+     */
+    static String createMessage(String commandName, int sw) {
+        StringBuffer message = new StringBuffer();
+        if (commandName != null) {
+            message.append(commandName).append(" ");
+        }
+        message.append("SW1/2 error: ");
+        message.append(Integer.toHexString(sw | 0x10000).substring(1));
+        return message.toString();
+    }
+
+    /**
+     * Creates a formatted exception message.
+     *
+     * @param commandName the name of the command. <code>null</code> if not
+     *            specified.
+     * @param message the message to be formatted.
+     * @return a formatted exception message.
+     */
+    static String createMessage(String commandName, String message) {
+        if (commandName == null) {
+            return message;
+        }
+        return commandName + " " + message;
+    }
+
     public static String bytesToString(byte[] array,int offset,int length, String prefix) {
         if (array==null) return null;
         if (length==-1) length=array.length-offset;

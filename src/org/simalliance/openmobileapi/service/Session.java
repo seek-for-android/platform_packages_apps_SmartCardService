@@ -99,7 +99,6 @@ public class Session {
                                 Log.e(_TAG, "ServiceSession channel - close"
                                         + " Exception " + ignore.getMessage());
                             }
-                            channel.setClosed();
                         }
                     }
                     mChannels.clear();

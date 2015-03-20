@@ -73,6 +73,13 @@ public class Terminal {
 
     protected byte[] mSelectResponse;
 
+    protected SmartcardService mService;
+
+    private final ArrayList<Session.SmartcardServiceSession> mSessions
+            = new ArrayList<Session.SmartcardServiceSession>();
+
+    private final Object mLock = new Object();
+
     /* Async task */
     InitialiseTask mInitialiseTask;
 
@@ -696,15 +703,8 @@ public class Terminal {
      */
     final class SmartcardServiceReader extends ISmartcardServiceReader.Stub {
 
-        protected final SmartcardService mService;
-
-        private final ArrayList<Session.SmartcardServiceSession> mSessions
-            = new ArrayList<Session.SmartcardServiceSession>();
-
-        private final Object mLock = new Object();
-
         public SmartcardServiceReader( SmartcardService service ){
-        	this.mService = service;
+        	mService = service;
         }
 
         public byte[] getAtr(){

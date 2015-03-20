@@ -308,13 +308,6 @@ public class Channel implements IBinder.DeathRecipient {
         return this.mChannelAccess;
     }
 
-    public void setCallingPid(int pid) {
-        
-        
-        
-        mCallingPid = pid;
-    }
-
     private void checkCommand(byte[] command) {
         if (getTerminal().getAccessControlEnforcer() != null) {
             // check command if it complies to the access rules.
@@ -371,11 +364,6 @@ public class Channel implements IBinder.DeathRecipient {
         return mIsClosed;
     }
 
-    void setClosed() {
-        
-        mIsClosed = true;
-    }
-
     /**
      * Implementation of the SmartcardService Channel interface according to
      * OMAPI.
@@ -401,10 +389,6 @@ public class Channel implements IBinder.DeathRecipient {
                     mSession.removeChannel(Channel.this);
                 }
             }
-        }
-
-        public void setClosed() {
-            Channel.this.setClosed();
         }
 
         @Override
@@ -458,8 +442,8 @@ public class Channel implements IBinder.DeathRecipient {
                             "command must have at least 4 bytes");
                     return null;
                 }
-                
-                Channel.this.setCallingPid(Binder.getCallingPid());
+
+                mCallingPid = Binder.getCallingPid();
                 
                 return Channel.this.transmit(command);
             } catch (Exception e) {
@@ -484,8 +468,8 @@ public class Channel implements IBinder.DeathRecipient {
                             "channel is closed");
                     return false;
                 }
-                
-                Channel.this.setCallingPid(Binder.getCallingPid());
+
+                mCallingPid = Binder.getCallingPid();
 
                 return Channel.this.selectNext();
             } catch (Exception e) {

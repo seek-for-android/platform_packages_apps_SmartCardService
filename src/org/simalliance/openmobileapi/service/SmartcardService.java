@@ -80,14 +80,6 @@ public final class SmartcardService extends Service {
     public void onCreate() {
         Log.v(_TAG, Thread.currentThread().getName()
                 + " smartcard service onCreate");
-
-        // Start up the thread running the service. Note that we create a
-        // separate thread because the service normally runs in the process's
-        // main thread, which we don't want to block. We also make it
-        // background priority so CPU-intensive work will not disrupt our UI.
-        HandlerThread thread = new HandlerThread("SmartCardServiceHandler");
-        thread.start();
-
         createTerminals();
     }
 

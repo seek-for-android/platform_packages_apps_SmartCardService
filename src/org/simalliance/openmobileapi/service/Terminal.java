@@ -37,6 +37,7 @@ import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -72,8 +73,6 @@ public class Terminal {
     protected ServiceConnection mTerminalConnection;
 
     protected byte[] mSelectResponse;
-
-    protected SmartcardService mService;
 
     private final ArrayList<Session> mSessions
             = new ArrayList<Session>();
@@ -218,6 +217,42 @@ public class Terminal {
     }
 
     /**
+     * Closes the defined Session and all its allocated resources. <br>
+     * After calling this method the Session can not be used for the
+     * communication with the Secure Element any more.
+     *
+     * @param session the Session that should be closed
+     * @throws RemoteException
+     * @throws CardException
+     * @throws NullPointerException if Session is null
+     */
+    synchronized void closeSession(Session session)
+            throws RemoteException, CardException {
+        if (session == null) {
+            throw new NullPointerException("session is null");
+        }
+        if (!session.isClosed()) {
+            SmartcardError error = new SmartcardError();
+            session.closeChannels(error);
+            error.throwException();
+            session.setClosed();
+        }
+        mSessions.remove(session);
+    }
+
+    private void closeSessions(SmartcardError error) throws RemoteException, CardException {
+        synchronized (mLock) {
+            Iterator<Session> iter = mSessions.iterator();
+            while (iter.hasNext()) {
+                Session session = iter.next();
+                closeSession(session);
+                iter = mSessions.iterator();
+            }
+            mSessions.clear();
+        }
+    }
+
+    /**
      * This method is called in SmartcardService:onDestroy
      * to clean up all open channels.
      */
@@ -289,7 +324,7 @@ public class Terminal {
     protected int internalOpenLogicalChannel() throws Exception {
         SmartcardError error = new SmartcardError();
         try {
-            OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(null,error);
+            OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(null, error);
             Exception ex = error.createException();
             if(ex != null) {
                 throw ex;
@@ -703,10 +738,6 @@ public class Terminal {
      */
     final class SmartcardServiceReader extends ISmartcardServiceReader.Stub {
 
-        public SmartcardServiceReader( SmartcardService service ){
-        	mService = service;
-        }
-
         public byte[] getAtr(){
         	return Terminal.this.getAtr();
         }
@@ -756,7 +787,7 @@ public class Terminal {
                     // session is null
                     return null;
                 }
-                Session session = new Session(this, mContext);
+                Session session = new Session(Terminal.this, mContext);
                 mSessions.add(session);
 
                 return session.new SmartcardServiceSession();
@@ -767,14 +798,10 @@ public class Terminal {
         public void closeSessions(SmartcardError error) throws RemoteException {
 
             Util.clearError(error);
-            synchronized (mLock) {
-                for (Session session : mSessions) {
-                    if (session != null && !session.isClosed()) {
-                        session.closeChannels(error);
-                        session.setClosed();
-                    }
-                }
-                mSessions.clear();
+            try {
+                Terminal.this.closeSessions(error);
+            } catch (CardException e) {
+                e.printStackTrace();
             }
         }
 

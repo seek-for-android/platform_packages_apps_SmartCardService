@@ -223,8 +223,7 @@ public final class SmartcardService extends Service {
             Util.clearError(error);
             Terminal terminal = getTerminal(reader, error);
             if (terminal != null) {
-                return terminal.new SmartcardServiceReader(
-                        SmartcardService.this);
+                return terminal.new SmartcardServiceReader();
             }
             Util.setError(error, IllegalArgumentException.class,
                     "invalid reader name");

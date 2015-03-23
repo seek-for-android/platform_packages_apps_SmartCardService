@@ -8,18 +8,19 @@ import android.util.Log;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 
 import java.io.PrintWriter;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 /**
  * The smartcard service interface implementation.
  */
 public class Session {
 
-    private final Terminal.SmartcardServiceReader mReader;
+    private final Terminal mReader;
     /** List of open channels in use of by this client. */
-    private final Set<Channel> mChannels = new HashSet<Channel>();
+    private final Map<Long, Channel> mChannels = new HashMap<Long, Channel>();
 
     public static final String _TAG = "SmartcardServiceSession";
 
@@ -27,10 +28,13 @@ public class Session {
 
     private boolean mIsClosed;
 
+    /** Random number generator used for handle creation. */
+    static Random mRandom = new Random();
+
     private byte[] mAtr;
 
     private Context mContext;
-    public Session(Terminal.SmartcardServiceReader reader, Context context) {
+    public Session(Terminal reader, Context context) {
         mReader = reader;
         mAtr = mReader.getAtr();
         mIsClosed = false;
@@ -58,7 +62,7 @@ public class Session {
     }
 
     public ISmartcardServiceReader getReader() throws RemoteException {
-        return mReader;
+        return mReader.new SmartcardServiceReader();
     }
 
     public byte[] getAtr() throws RemoteException {
@@ -79,29 +83,20 @@ public class Session {
 
     public void closeChannels(SmartcardError error) throws RemoteException {
         synchronized (mLock) {
-
-            Iterator<Channel> iter = mChannels.iterator();
-            try {
-                while (iter.hasNext()) {
-                    Channel channel = iter.next();
-                    if (channel != null && !channel.isClosed()) {
-                        try {
-                            channel.close();
-                            // close changes indirectly mChannels, so we
-                            // need a new iterator.
-                            iter = mChannels.iterator();
-                        } catch (Exception ignore) {
-                            Log.e(_TAG, "ServiceSession channel - close"
-                                    + " Exception " + ignore.getMessage());
-                        }
+            Collection<Channel> col = mChannels.values();
+            Channel[] channelList = col.toArray(new Channel[col.size()]);
+            for (Channel channel : channelList) {
+                if (channel != null && !channel.isClosed()) {
+                    try {
+                        channel.close();
+                        mIsClosed = true;
+                    } catch (Exception ignore) {
+                        Log.e(_TAG, "ServiceSession channel - close"
+                                + " Exception " + ignore.getMessage());
                     }
                 }
-                mChannels.clear();
-            } catch (Exception e) {
-                Log.e(_TAG,
-                        "ServiceSession closeChannels Exception "
-                                + e.getMessage());
             }
+            mChannels.clear();
         }
     }
 
@@ -155,8 +150,8 @@ public class Session {
                     Binder.getCallingUid());
             Log.v(_TAG, "Enable access control on basic channel for "
                     + packageName);
-            ChannelAccess channelAccess = mReader.getTerminal()
-                    .setUpChannelAccess(mContext.getPackageManager(), aid,
+            ChannelAccess channelAccess = mReader.
+                    setUpChannelAccess(mContext.getPackageManager(), aid,
                             packageName, callback);
             Log.v(_TAG, "Access control successfully enabled.");
 
@@ -167,10 +162,10 @@ public class Session {
             Log.v(_TAG, "OpenBasicChannel(AID)");
             Channel channel;
             if (noAid) {
-                channel = mReader.getTerminal().openBasicChannel(this,
+                channel = mReader.openBasicChannel(this,
                         callback);
             } else {
-                channel = mReader.getTerminal().openBasicChannel(this, aid,
+                channel = mReader.openBasicChannel(this, aid,
                         callback);
             }
 
@@ -182,7 +177,7 @@ public class Session {
 
             Channel.SmartcardServiceChannel basicChannel
                     = channel.new SmartcardServiceChannel(this);
-            mChannels.add(channel);
+            registerChannel(channel);
             return basicChannel;
 
         } catch (Exception e) {
@@ -233,8 +228,8 @@ public class Session {
                     Binder.getCallingUid());
             Log.v(_TAG, "Enable access control on logical channel for "
                     + packageName);
-            ChannelAccess channelAccess = mReader.getTerminal()
-                    .setUpChannelAccess(mContext.getPackageManager(), aid,
+            ChannelAccess channelAccess = mReader.
+                    setUpChannelAccess(mContext.getPackageManager(), aid,
                             packageName, callback);
             Log.v(_TAG, "Access control successfully enabled.");
             channelAccess.setCallingPid(Binder.getCallingPid());
@@ -243,10 +238,10 @@ public class Session {
             Log.v(_TAG, "OpenLogicalChannel");
             Channel channel;
             if (noAid) {
-                channel = mReader.getTerminal().openLogicalChannel(this,
+                channel = mReader.openLogicalChannel(this,
                         callback);
             } else {
-                channel = mReader.getTerminal().openLogicalChannel(this,
+                channel = mReader.openLogicalChannel(this,
                         aid, callback);
             }
 
@@ -256,7 +251,7 @@ public class Session {
                     + channel.getChannelNumber());
             Channel.SmartcardServiceChannel logicalChannel
                     = channel.new SmartcardServiceChannel(this);
-            mChannels.add(channel);
+            registerChannel(channel);
             return logicalChannel;
         } catch (Exception e) {
             Util.setError(error, e);
@@ -265,36 +260,44 @@ public class Session {
         }
     }
 
-    public void dump(PrintWriter writer, String prefix) {
+    /**
+     * Creates a handle for the specified channel instances and adds the channel
+     * instance to the channel list.
+     *
+     * @param channel
+     * @return the channel handle.
+     */
+    private long registerChannel(Channel channel) {
+        long hChannel = mRandom.nextInt();
+        hChannel <<= 32;
+        hChannel |= (((long) channel.hashCode()) & 0xFFFFFFFFL);
 
-        Iterator<Channel> iter = mChannels.iterator();
-        while (iter.hasNext()) {
-            Channel channel = iter.next();
-            if (channel != null && !channel.isClosed()) {
-                try {
-                    writer.println(prefix + "  channel " + channel.getChannelNumber()
-                            + ": ");
-                    writer.println(prefix + "    package      : "
-                            + channel.getChannelAccess().getPackageName());
-                    writer.println(prefix + "    pid          : "
-                            + channel.getChannelAccess().getCallingPid());
-                    writer.println(prefix + "    aid selected : "
-                            + channel.hasSelectedAid());
-                    writer.println(prefix + "    basic channel: "
-                            + channel.isBasicChannel());
-                } catch (Exception ignore) {
-                    Log.e(_TAG, "ServiceSession channel - close"
-                            + " Exception " + ignore.getMessage());
-                }
-            }
+        //channel.setHandle(hChannel);
+
+        mChannels.put(hChannel, channel);
+
+        return hChannel;
+    }
+
+    public void dump(PrintWriter writer, String prefix) {
+        for (Channel channel : mChannels.values()) {
+            writer.println(prefix + "  channel " + channel.getChannelNumber()
+                    + ": ");
+            writer.println(prefix + "    package      : "
+                    + channel.getChannelAccess().getPackageName());
+            writer.println(prefix + "    pid          : "
+                    + channel.getChannelAccess().getCallingPid());
+            writer.println(prefix + "    aid selected : "
+                    + channel.hasSelectedAid());
+            writer.println(prefix + "    basic channel: "
+                    + channel.isBasicChannel());
         }
-        mChannels.clear();
     }
 
     final class SmartcardServiceSession extends ISmartcardServiceSession.Stub {
         @Override
         public ISmartcardServiceReader getReader() throws RemoteException {
-            return mReader;
+            return mReader.new SmartcardServiceReader();
         }
 
         @Override

@@ -272,11 +272,20 @@ public class Session {
         hChannel <<= 32;
         hChannel |= (((long) channel.hashCode()) & 0xFFFFFFFFL);
 
-        //channel.setHandle(hChannel);
+        channel.setHandle(hChannel);
 
         mChannels.put(hChannel, channel);
 
         return hChannel;
+    }
+
+    public Channel getBasicChannel() {
+        for (Channel channel : mChannels.values()) {
+            if (channel.getChannelNumber() == 0) {
+                return channel;
+            }
+        }
+        return null;
     }
 
     public void dump(PrintWriter writer, String prefix) {

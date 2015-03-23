@@ -62,8 +62,6 @@ public class Terminal {
 
     protected Context mContext;
 
-    private final Map<Long, Channel> mChannels = new HashMap<Long, Channel>();
-
     protected final String mName;
 
     protected int mIndex;
@@ -257,11 +255,9 @@ public class Terminal {
      * to clean up all open channels.
      */
     public synchronized void closeChannels() {
-        Collection<Channel> col = mChannels.values();
-        Channel[] channelList = col.toArray(new Channel[col.size()]);
-        for (Channel channel : channelList) {
+        for (Session session : mSessions) {
             try {
-                closeChannel(channel);
+                session.closeChannels(new SmartcardError());
             } catch (Exception ignore) {
             }
         }
@@ -275,12 +271,7 @@ public class Terminal {
      */
     public synchronized void closeChannel(Channel channel)
             throws Exception {
-
-        try {
-            internalCloseLogicalChannel(channel.getChannelNumber());
-        } finally {
-            mChannels.remove(channel.getHandle());
-        }
+        internalCloseLogicalChannel(channel.getChannelNumber());
     }
 
     /**
@@ -298,9 +289,10 @@ public class Terminal {
     }
 
     private Channel getBasicChannel() {
-        for (Channel channel : mChannels.values()) {
-            if (channel.getChannelNumber() == 0) {
-                return channel;
+        for (Session session : mSessions) {
+            Channel basicChannel = session.getBasicChannel();
+            if (basicChannel != null) {
+                return basicChannel;
             }
         }
         return null;
@@ -488,7 +480,6 @@ public class Terminal {
 
         Channel basicChannel = createChannel(session, 0, callback);
         basicChannel.hasSelectedAid(false, null);
-        registerChannel(basicChannel);
         return basicChannel;
     }
 
@@ -514,7 +505,6 @@ public class Terminal {
         Channel basicChannel = createChannel(session, 0, callback);
         basicChannel.hasSelectedAid(true, aid);
         mDefaultApplicationSelectedOnBasicChannel = false;
-        registerChannel(basicChannel);
         return basicChannel;
     }
 
@@ -532,7 +522,6 @@ public class Terminal {
         Channel logicalChannel = createChannel(
                 session, channelNumber, callback);
         logicalChannel.hasSelectedAid(false, null);
-        registerChannel(logicalChannel);
         return logicalChannel;
     }
 
@@ -554,7 +543,6 @@ public class Terminal {
         Channel logicalChannel = createChannel(
                 session, channelNumber, callback);
         logicalChannel.hasSelectedAid(true, aid);
-        registerChannel(logicalChannel);
         return logicalChannel;
     }
 
@@ -601,25 +589,6 @@ public class Terminal {
             }
         }
         return rsp;
-    }
-
-    /**
-     * Creates a handle for the specified channel instances and adds the channel
-     * instance to the channel list.
-     *
-     * @param channel
-     * @return the channel handle.
-     */
-    private long registerChannel(Channel channel) {
-        long hChannel = mRandom.nextInt();
-        hChannel <<= 32;
-        hChannel |= (((long) channel.hashCode()) & 0xFFFFFFFFL);
-
-        channel.setHandle(hChannel);
-
-        mChannels.put(hChannel, channel);
-
-        return hChannel;
     }
 
     /**
@@ -805,9 +774,6 @@ public class Terminal {
 
         writer.println(prefix + "mIsConnected:" + (mTerminalService != null));
         writer.println();
-
-        /* Dump the list of currunlty openned channels */
-        writer.println(prefix + "List of open channels:");
 
         /* Dump the list of currunlty openned channels */
         writer.println(prefix + "List of open channels:");

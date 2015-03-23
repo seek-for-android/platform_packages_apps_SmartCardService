@@ -7,6 +7,7 @@ import android.util.Log;
 
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 
+import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -104,7 +105,7 @@ public class Session {
         }
     }
 
-    public boolean isClosed() throws RemoteException {
+    public boolean isClosed() {
 
         return mIsClosed;
     }
@@ -262,6 +263,32 @@ public class Session {
             Log.v(_TAG, "OpenLogicalChannel Exception: " + e.getMessage());
             return null;
         }
+    }
+
+    public void dump(PrintWriter writer, String prefix) {
+
+        Iterator<Channel> iter = mChannels.iterator();
+        while (iter.hasNext()) {
+            Channel channel = iter.next();
+            if (channel != null && !channel.isClosed()) {
+                try {
+                    writer.println(prefix + "  channel " + channel.getChannelNumber()
+                            + ": ");
+                    writer.println(prefix + "    package      : "
+                            + channel.getChannelAccess().getPackageName());
+                    writer.println(prefix + "    pid          : "
+                            + channel.getChannelAccess().getCallingPid());
+                    writer.println(prefix + "    aid selected : "
+                            + channel.hasSelectedAid());
+                    writer.println(prefix + "    basic channel: "
+                            + channel.isBasicChannel());
+                } catch (Exception ignore) {
+                    Log.e(_TAG, "ServiceSession channel - close"
+                            + " Exception " + ignore.getMessage());
+                }
+            }
+        }
+        mChannels.clear();
     }
 
     final class SmartcardServiceSession extends ISmartcardServiceSession.Stub {

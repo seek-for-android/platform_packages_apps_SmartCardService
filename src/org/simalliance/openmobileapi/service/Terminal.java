@@ -203,7 +203,10 @@ public class Terminal {
     }
 
     public void onSmartcardServiceShutdown() {
-        closeChannels();
+        try {
+            closeSessions(new SmartcardError());
+        } catch (Exception ignore) {
+        }
         // Cancel the inialization background task if still running
         if (mInitialiseTask != null) {
             mInitialiseTask.cancel(true);
@@ -247,19 +250,6 @@ public class Terminal {
                 iter = mSessions.iterator();
             }
             mSessions.clear();
-        }
-    }
-
-    /**
-     * This method is called in SmartcardService:onDestroy
-     * to clean up all open channels.
-     */
-    public synchronized void closeChannels() {
-        for (Session session : mSessions) {
-            try {
-                session.closeChannels(new SmartcardError());
-            } catch (Exception ignore) {
-            }
         }
     }
 

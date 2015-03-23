@@ -263,20 +263,6 @@ public class Terminal {
         }
     }
 
-    /**
-     * Creates a channel instance.
-     *
-     * @param channelNumber the channel number according to ISO 7816-4.
-     * @param callback the callback used to detect the death of the client.
-     * @return a channel instance.
-     */
-    protected Channel createChannel(
-            Session session,
-            int channelNumber,
-            ISmartcardServiceCallback callback) {
-        return new Channel(session, this, channelNumber, callback);
-    }
-
     private Channel getBasicChannel() {
         for (Session session : mSessions) {
             Channel basicChannel = session.getBasicChannel();
@@ -467,7 +453,7 @@ public class Terminal {
             throw new CardException("basic channel in use");
         }
 
-        Channel basicChannel = createChannel(session, 0, callback);
+        Channel basicChannel = new Channel(session, this, 0, callback);
         basicChannel.hasSelectedAid(false, null);
         return basicChannel;
     }
@@ -491,7 +477,7 @@ public class Terminal {
         select(aid);
 
 
-        Channel basicChannel = createChannel(session, 0, callback);
+        Channel basicChannel = new Channel(session, this, 0, callback);
         basicChannel.hasSelectedAid(true, aid);
         mDefaultApplicationSelectedOnBasicChannel = false;
         return basicChannel;
@@ -508,8 +494,7 @@ public class Terminal {
         int channelNumber = internalOpenLogicalChannel();
 
 
-        Channel logicalChannel = createChannel(
-                session, channelNumber, callback);
+        Channel logicalChannel = new Channel(session, this, channelNumber, callback);
         logicalChannel.hasSelectedAid(false, null);
         return logicalChannel;
     }
@@ -529,8 +514,7 @@ public class Terminal {
         int channelNumber = internalOpenLogicalChannel(aid);
 
 
-        Channel logicalChannel = createChannel(
-                session, channelNumber, callback);
+        Channel logicalChannel = new Channel(session, this, channelNumber, callback);
         logicalChannel.hasSelectedAid(true, aid);
         return logicalChannel;
     }

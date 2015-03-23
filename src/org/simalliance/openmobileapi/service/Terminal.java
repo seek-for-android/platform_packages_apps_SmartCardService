@@ -35,10 +35,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.AccessControlException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
 
@@ -228,20 +225,20 @@ public class Terminal {
      * @throws NullPointerException if Session is null
      */
     synchronized void closeSession(Session session)
-            throws RemoteException, CardException {
+            throws CardException {
         if (session == null) {
             throw new NullPointerException("session is null");
         }
         if (!session.isClosed()) {
             SmartcardError error = new SmartcardError();
-            session.closeChannels(error);
+            session.closeChannels();
             error.throwException();
             session.setClosed();
         }
         mSessions.remove(session);
     }
 
-    private void closeSessions(SmartcardError error) throws RemoteException, CardException {
+    private void closeSessions(SmartcardError error) throws CardException {
         synchronized (mLock) {
             Iterator<Session> iter = mSessions.iterator();
             while (iter.hasNext()) {

@@ -69,7 +69,7 @@ public class Session {
         return mAtr;
     }
 
-    public void close(SmartcardError error) throws RemoteException {
+    public void close(SmartcardError error) {
         Util.clearError(error);
         if (mReader == null) {
             return;
@@ -81,7 +81,7 @@ public class Session {
         }
     }
 
-    public void closeChannels(SmartcardError error) throws RemoteException {
+    public void closeChannels() {
         synchronized (mLock) {
             Collection<Channel> col = mChannels.values();
             Channel[] channelList = col.toArray(new Channel[col.size()]);
@@ -317,16 +317,12 @@ public class Session {
         @Override
         public void close(SmartcardError error) throws RemoteException {
             Util.clearError(error);
-            try {
-                Session.this.close(error);
-            } catch (Exception e) {
-                Util.setError(error, e);
-            }
+            Session.this.close(error);
         }
 
         @Override
         public void closeChannels(SmartcardError error) throws RemoteException {
-            Session.this.closeChannels(error);
+            Session.this.closeChannels();
         }
 
         @Override

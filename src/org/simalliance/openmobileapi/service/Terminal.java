@@ -268,29 +268,6 @@ public class Terminal {
     }
 
     /**
-     * Implementation of the SELECT command.
-     *
-     * @return the number of the logical channel according to ISO 7816-4.
-     *
-     * @throws Exception If the channel could not be opened.
-     */
-    protected int internalOpenLogicalChannel() throws Exception {
-        SmartcardError error = new SmartcardError();
-        try {
-            OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(null, error);
-            Exception ex = error.createException();
-            if(ex != null) {
-                throw ex;
-            }
-            mSelectResponse = response.getSelectResponse();
-            return response.getChannel();
-        } catch(RemoteException e) {
-            error.throwException();
-            throw e;
-        }
-    }
-
-    /**
      * Implementation of the MANAGE CHANNEL open and SELECT commands.
      *
      * @param aid The aid of the applet to be selected.
@@ -428,26 +405,6 @@ public class Terminal {
         }
     }
 
-    public synchronized Channel openBasicChannel(
-            Session session,
-            ISmartcardServiceCallback callback)
-                    throws CardException {
-        if (callback == null) {
-            throw new NullPointerException("callback must not be null");
-        }
-
-        if (!mDefaultApplicationSelectedOnBasicChannel) {
-            throw new CardException("default application is not selected");
-        }
-        if (getBasicChannel() != null) {
-            throw new CardException("basic channel in use");
-        }
-
-        Channel basicChannel = new Channel(session, this, 0, callback);
-        basicChannel.hasSelectedAid(false, null);
-        return basicChannel;
-    }
-
     public Channel openBasicChannel(
             Session session,
             byte[] aid,
@@ -456,37 +413,26 @@ public class Terminal {
         if (callback == null) {
             throw new NullPointerException("callback must not be null");
         }
-        if (aid == null) {
-            throw new NullPointerException("aid must not be null");
-        }
 
         if (getBasicChannel() != null) {
             throw new CardException("basic channel in use");
         }
+        Channel basicChannel;
+        if (aid == null) {
+            if (!mDefaultApplicationSelectedOnBasicChannel) {
+                throw new CardException("default application is not selected");
+            }
+            basicChannel = new Channel(session, this, 0, callback);
+            basicChannel.hasSelectedAid(false, null);
 
-        select(aid);
-
-
-        Channel basicChannel = new Channel(session, this, 0, callback);
-        basicChannel.hasSelectedAid(true, aid);
-        mDefaultApplicationSelectedOnBasicChannel = false;
-        return basicChannel;
-    }
-
-    public synchronized Channel openLogicalChannel(
-            Session session,
-            ISmartcardServiceCallback callback)
-                    throws Exception {
-        if (callback == null) {
-            throw new NullPointerException("callback must not be null");
+        } else {
+            select(aid);
+            basicChannel = new Channel(session, this, 0, callback);
+            basicChannel.hasSelectedAid(true, aid);
+            mDefaultApplicationSelectedOnBasicChannel = false;
         }
+        return basicChannel;
 
-        int channelNumber = internalOpenLogicalChannel();
-
-
-        Channel logicalChannel = new Channel(session, this, channelNumber, callback);
-        logicalChannel.hasSelectedAid(false, null);
-        return logicalChannel;
     }
 
     public synchronized Channel openLogicalChannel(
@@ -496,9 +442,6 @@ public class Terminal {
                     throws Exception {
         if (callback == null) {
             throw new NullPointerException("callback must not be null");
-        }
-        if (aid == null) {
-            throw new NullPointerException("aid must not be null");
         }
 
         int channelNumber = internalOpenLogicalChannel(aid);

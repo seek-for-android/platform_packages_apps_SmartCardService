@@ -162,7 +162,7 @@ public class Session {
             Log.v(_TAG, "OpenBasicChannel(AID)");
             Channel channel;
             if (noAid) {
-                channel = mReader.openBasicChannel(this,
+                channel = mReader.openBasicChannel(this, null,
                         callback);
             } else {
                 channel = mReader.openBasicChannel(this, aid,
@@ -238,7 +238,7 @@ public class Session {
             Log.v(_TAG, "OpenLogicalChannel");
             Channel channel;
             if (noAid) {
-                channel = mReader.openLogicalChannel(this,
+                channel = mReader.openLogicalChannel(this, null,
                         callback);
             } else {
                 channel = mReader.openLogicalChannel(this,

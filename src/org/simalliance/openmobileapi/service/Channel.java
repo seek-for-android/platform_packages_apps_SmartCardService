@@ -124,7 +124,7 @@ public class Channel implements IBinder.DeathRecipient {
         }
 
         try {
-            terminal.closeChannel(this);
+            terminal.internalCloseLogicalChannel(getChannelNumber());
             this.mIsClosed = true;
         } catch (Exception e) {
             throw new CardException(e.getMessage());

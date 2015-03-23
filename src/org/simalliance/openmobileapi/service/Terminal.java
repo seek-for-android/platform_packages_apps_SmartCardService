@@ -264,17 +264,6 @@ public class Terminal {
     }
 
     /**
-     * Closes the specified channel.
-     *
-     * @param channel the channel to be closed.
-     * @throws CardException if closing the channel failed.
-     */
-    public synchronized void closeChannel(Channel channel)
-            throws Exception {
-        internalCloseLogicalChannel(channel.getChannelNumber());
-    }
-
-    /**
      * Creates a channel instance.
      *
      * @param channelNumber the channel number according to ISO 7816-4.

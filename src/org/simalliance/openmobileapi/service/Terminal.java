@@ -190,7 +190,10 @@ public class Terminal {
             if (reset) {
                 resetAccessControl();
             }
-            result &= initializeAccessControl(true, new ISmartcardServiceCallback.Stub() {});
+            if (mAccessControlEnforcer == null) {
+                mAccessControlEnforcer = new AccessControlEnforcer(this);
+            }
+            result &= mAccessControlEnforcer.initialize(true, new ISmartcardServiceCallback.Stub(){});
         } else {
             Log.i(_TAG, "NOT initializing Access Control for "
                     + getName() + " SE not present.");
@@ -635,15 +638,6 @@ public class Terminal {
         mAccessControlEnforcer.setPackageManager(packageManager);
         return mAccessControlEnforcer.setUpChannelAccess(
                 aid, packageName, callback);
-    }
-
-    public synchronized boolean initializeAccessControl(
-            boolean loadAtStartup,
-            ISmartcardServiceCallback callback) {
-        if (mAccessControlEnforcer == null) {
-            mAccessControlEnforcer = new AccessControlEnforcer(this);
-        }
-        return mAccessControlEnforcer.initialize(loadAtStartup, callback);
     }
 
     public AccessControlEnforcer getAccessControlEnforcer() {

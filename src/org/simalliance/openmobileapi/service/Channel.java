@@ -296,18 +296,6 @@ public class Channel implements IBinder.DeathRecipient {
         }
     }
 
-    
-
-    /**
-     * true if aid during open xxx channel could be selected. false if aid could
-     * not be or was not selected.
-     *
-     * @return boolean.
-     */
-    public boolean hasSelectedAid() {
-        return mHasSelectedAid;
-    }
-
     /**
      * set selected aid flag and aid (may be null).
      */

@@ -272,9 +272,7 @@ public class Session {
         long hChannel = mRandom.nextInt();
         hChannel <<= 32;
         hChannel |= (((long) channel.hashCode()) & 0xFFFFFFFFL);
-
         channel.setHandle(hChannel);
-
         mChannels.put(hChannel, channel);
 
         return hChannel;
@@ -297,8 +295,6 @@ public class Session {
                     + channel.getChannelAccess().getPackageName());
             writer.println(prefix + "    pid          : "
                     + channel.getChannelAccess().getCallingPid());
-            writer.println(prefix + "    aid selected : "
-                    + channel.hasSelectedAid());
             writer.println(prefix + "    basic channel: "
                     + channel.isBasicChannel());
         }

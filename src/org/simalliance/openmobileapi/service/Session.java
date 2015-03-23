@@ -160,6 +160,7 @@ public class Session {
 
 
             Log.v(_TAG, "OpenBasicChannel(AID)");
+
             Channel channel;
             if (noAid) {
                 channel = mReader.openBasicChannel(this, null,

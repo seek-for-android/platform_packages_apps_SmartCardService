@@ -253,7 +253,7 @@ public class Terminal {
         }
     }
 
-    private Channel getBasicChannel() {
+    protected Channel getBasicChannel() {
         for (Session session : mSessions) {
             Channel basicChannel = session.getBasicChannel();
             if (basicChannel != null) {
@@ -467,47 +467,6 @@ public class Terminal {
     }
 
     /**
-     * Protocol specific implementation of the transmit operation. This method
-     * is synchronized in order to handle GET RESPONSE and command repetition
-     * without interruption by other commands.
-     *
-     * @param cmd the command to be transmitted.
-     * @return the response received.
-     * @throws CardException if the transmit operation failed.
-     */
-    protected synchronized byte[] protocolTransmit(byte[] cmd)
-            throws CardException {
-        byte[] rsp = internalTransmit(cmd);
-
-        if (rsp.length >= 2) {
-            int sw1 = rsp[rsp.length - 2] & 0xFF;
-            if (sw1 == 0x6C) {
-                cmd[cmd.length - 1] = rsp[rsp.length - 1];
-                rsp = internalTransmit(cmd);
-            } else if (sw1 == 0x61) {
-                byte[] getResponseCmd = new byte[] {
-                        cmd[0], (byte) 0xC0, 0x00, 0x00, 0x00
-                };
-                byte[] response = new byte[rsp.length - 2];
-                System.arraycopy(rsp, 0, response, 0, rsp.length - 2);
-                while (true) {
-                    getResponseCmd[4] = rsp[rsp.length - 1];
-                    rsp = internalTransmit(getResponseCmd);
-                    if (rsp.length >= 2 && rsp[rsp.length - 2] == 0x61) {
-                        response = Util.appendResponse(
-                                response, rsp, rsp.length - 2);
-                    } else {
-                        response = Util.appendResponse(response, rsp, rsp.length);
-                        break;
-                    }
-                }
-                rsp = response;
-            }
-        }
-        return rsp;
-    }
-
-    /**
      * Transmits the specified command and returns the response. Optionally
      * checks the response length and the response status word. The status word
      * check is implemented as follows (sw = status word of the response):
@@ -533,9 +492,34 @@ public class Terminal {
             int swMask,
             String commandName)
                     throws CardException {
-        byte[] rsp;
+
+        byte[] rsp= internalTransmit(cmd);
         try {
-            rsp = protocolTransmit(cmd);
+            if (rsp.length >= 2) {
+                int sw1 = rsp[rsp.length - 2] & 0xFF;
+                if (sw1 == 0x6C) {
+                    cmd[cmd.length - 1] = rsp[rsp.length - 1];
+                    rsp = internalTransmit(cmd);
+                } else if (sw1 == 0x61) {
+                    byte[] getResponseCmd = new byte[] {
+                            cmd[0], (byte) 0xC0, 0x00, 0x00, 0x00
+                    };
+                    byte[] response = new byte[rsp.length - 2];
+                    System.arraycopy(rsp, 0, response, 0, rsp.length - 2);
+                    while (true) {
+                        getResponseCmd[4] = rsp[rsp.length - 1];
+                        rsp = internalTransmit(getResponseCmd);
+                        if (rsp.length >= 2 && rsp[rsp.length - 2] == 0x61) {
+                            response = Util.appendResponse(
+                                    response, rsp, rsp.length - 2);
+                        } else {
+                            response = Util.appendResponse(response, rsp, rsp.length);
+                            break;
+                        }
+                    }
+                    rsp = response;
+                }
+            }
         } catch (Exception e) {
             if (commandName == null) {
                 throw new CardException(e.getMessage());

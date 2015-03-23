@@ -302,6 +302,44 @@ public class Terminal {
      */
     protected void internalCloseLogicalChannel(int channelNumber)
             throws CardException {
+        if(channelNumber == 0) {
+            mSelectResponse = null;
+            byte[] selectCommand = new byte[5];
+            selectCommand[0] = 0x00;
+            selectCommand[1] = (byte) 0xA4;
+            selectCommand[2] = 0x04;
+            selectCommand[3] = 0x00;
+            selectCommand[4] = 0x00;
+            try {
+                mSelectResponse = transmit(
+                        selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
+            } catch (Exception exp) {
+                // Selection of the default application fails
+                try {
+                    Log.v(SmartcardService._TAG,
+                            "Close basic channel - Exception : "
+                                    + exp.getLocalizedMessage());
+                    if (getAccessControlEnforcer() != null) {
+                        byte[] aid = AccessControlEnforcer
+                                .getDefaultAccessControlAid();
+                        mSelectResponse = null;
+                        selectCommand = new byte[aid.length + 6];
+                        selectCommand[0] = 0x00;
+                        selectCommand[1] = (byte) 0xA4;
+                        selectCommand[2] = 0x04;
+                        selectCommand[3] = 0x00;
+                        selectCommand[4] = (byte) aid.length;
+                        System.arraycopy(aid, 0, selectCommand, 5, aid.length);
+                        // TODO: also accept 62XX and 63XX as valid SW
+                        mSelectResponse = transmit(
+                                selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
+                    }
+                } catch (NoSuchElementException exp2) {
+                    // Access Control Applet not available => Don't care
+                }
+            }
+        }
+
         SmartcardError error = new SmartcardError();
         try {
             mTerminalService.internalCloseLogicalChannel(channelNumber, error);
@@ -358,53 +396,6 @@ public class Terminal {
         return mTerminalService.isCardPresent();
     }
 
-    /**
-     * Performs a select command on the basic channel without an AID parameter.
-     * <br>
-     * The card manager will be selected.
-     */
-    public void select() {
-        mSelectResponse = null;
-        byte[] selectCommand = new byte[5];
-        selectCommand[0] = 0x00;
-        selectCommand[1] = (byte) 0xA4;
-        selectCommand[2] = 0x04;
-        selectCommand[3] = 0x00;
-        selectCommand[4] = 0x00;
-        try {
-            mSelectResponse = transmit(
-                    selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
-        } catch (Exception exp) {
-            throw new NoSuchElementException(exp.getMessage());
-        }
-    }
-
-    /**
-     * Performs a select command on the basic channel.
-     *
-     * @param aid the aid which should be selected.
-     */
-    public void select(byte[] aid) {
-        if (aid == null) {
-            throw new NullPointerException("aid must not be null");
-        }
-        mSelectResponse = null;
-        byte[] selectCommand = new byte[aid.length + 6];
-        selectCommand[0] = 0x00;
-        selectCommand[1] = (byte) 0xA4;
-        selectCommand[2] = 0x04;
-        selectCommand[3] = 0x00;
-        selectCommand[4] = (byte) aid.length;
-        System.arraycopy(aid, 0, selectCommand, 5, aid.length);
-        try {
-            // TODO: also accept 62XX and 63XX as valid SW
-            mSelectResponse = transmit(
-                    selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
-        } catch (Exception exp) {
-            throw new NoSuchElementException(exp.getMessage());
-        }
-    }
-
     public Channel openBasicChannel(
             Session session,
             byte[] aid,
@@ -426,7 +417,26 @@ public class Terminal {
             basicChannel.hasSelectedAid(false, null);
 
         } else {
-            select(aid);
+            // Select command
+            if (aid == null) {
+                throw new NullPointerException("aid must not be null");
+            }
+            mSelectResponse = null;
+            byte[] selectCommand = new byte[aid.length + 6];
+            selectCommand[0] = 0x00;
+            selectCommand[1] = (byte) 0xA4;
+            selectCommand[2] = 0x04;
+            selectCommand[3] = 0x00;
+            selectCommand[4] = (byte) aid.length;
+            System.arraycopy(aid, 0, selectCommand, 5, aid.length);
+            try {
+                // TODO: also accept 62XX and 63XX as valid SW
+                mSelectResponse = transmit(
+                        selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
+            } catch (Exception exp) {
+                throw new NoSuchElementException(exp.getMessage());
+            }
+
             basicChannel = new Channel(session, this, 0, callback);
             basicChannel.hasSelectedAid(true, aid);
             mDefaultApplicationSelectedOnBasicChannel = false;

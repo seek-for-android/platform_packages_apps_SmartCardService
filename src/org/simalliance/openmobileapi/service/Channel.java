@@ -98,31 +98,6 @@ public class Channel implements IBinder.DeathRecipient {
                     "channel is not attached to a terminal");
         }
 
-        if (isBasicChannel() && hasSelectedAid()) {
-            try {
-                Log.v(SmartcardService._TAG,
-                        "Close basic channel - Select with out AID ...");
-                terminal.select();
-            } catch (NoSuchElementException exp) {
-                
-                // Selection of the default application fails
-                try {
-                    Log.v(SmartcardService._TAG,
-                            "Close basic channel - Exception : "
-                    + exp.getLocalizedMessage());
-                    AccessControlEnforcer access =
-                            terminal.getAccessControlEnforcer();
-                    if (access != null) {
-                        terminal.select(AccessControlEnforcer
-                                .getDefaultAccessControlAid());
-                    }
-                } catch (NoSuchElementException exp2) {
-                    // Access Control Applet not available => Don't care
-                }
-                
-            }
-        }
-
         try {
             terminal.internalCloseLogicalChannel(getChannelNumber());
             this.mIsClosed = true;
@@ -324,7 +299,7 @@ public class Channel implements IBinder.DeathRecipient {
     
 
     /**
-     * true if aid during open xxx channel coud be selected. false if aid could
+     * true if aid during open xxx channel could be selected. false if aid could
      * not be or was not selected.
      *
      * @return boolean.

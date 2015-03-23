@@ -306,10 +306,6 @@ public class Terminal {
         return null;
     }
 
-    public synchronized Channel getChannel(long hChannel) {
-        return mChannels.get(hChannel);
-    }
-
     public String getName() {
         return mName;
     }
@@ -737,11 +733,6 @@ public class Terminal {
      * OMAPI.
      */
     final class SmartcardServiceReader extends ISmartcardServiceReader.Stub {
-
-        public byte[] getAtr(){
-        	return Terminal.this.getAtr();
-        }
-
         @Override
         public String getName(SmartcardError error) throws RemoteException {
             Util.clearError(error);
@@ -803,34 +794,6 @@ public class Terminal {
             } catch (CardException e) {
                 e.printStackTrace();
             }
-        }
-
-        /**
-         * Closes the defined Session and all its allocated resources. <br>
-         * After calling this method the Session can not be used for the
-         * communication with the Secure Element any more.
-         *
-         * @param session the Session that should be closed
-         * @throws RemoteException
-         * @throws CardException
-         * @throws NullPointerException if Session is null
-         */
-        synchronized void closeSession(Session session)
-                throws RemoteException, CardException {
-            if (session == null) {
-                throw new NullPointerException("session is null");
-            }
-            if (!session.isClosed()) {
-                SmartcardError error = new SmartcardError();
-                session.closeChannels(error);
-                error.throwException();
-                session.setClosed();
-            }
-            mSessions.remove(session);
-        }
-
-        Terminal getTerminal() {
-            return Terminal.this;
         }
     }
 

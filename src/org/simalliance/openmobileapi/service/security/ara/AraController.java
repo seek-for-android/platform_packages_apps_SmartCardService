@@ -24,9 +24,9 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.MissingResourceException;
 
-import org.simalliance.openmobileapi.service.CardException;
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
+import org.simalliance.openmobileapi.service.SmartcardError;
 import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.AccessRuleCache;
@@ -161,7 +161,7 @@ public class AraController {
      * @throws AccessControlException
      * @throws CardException
      */
-    private boolean readAllAccessRules() throws AccessControlException, CardException {
+    private boolean readAllAccessRules() throws AccessControlException {
     	
     	try {
 			byte[] data = mApplet.readAllAccessRules();
@@ -211,13 +211,12 @@ public class AraController {
 }
 
     private void closeChannel(Channel channel) {
-        try {
-            if (channel != null && channel.getChannelNumber() != 0) {
 
-                channel.close();
+        if (channel != null && channel.getChannelNumber() != 0) {
 
-            }
-        } catch (CardException e) {
+            channel.close(new SmartcardError());
+
         }
+
     }
 }

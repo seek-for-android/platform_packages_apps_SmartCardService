@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.simalliance.openmobileapi.service.CardException;
 import org.simalliance.openmobileapi.service.ISmartcardService;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
 import org.simalliance.openmobileapi.service.ISmartcardServiceReader;
@@ -229,8 +228,6 @@ public class SEService {
     static void checkForException(SmartcardError error) {
         try {
             error.throwException();
-        } catch (CardException exp) {
-            throw new IllegalStateException(exp.getMessage());
         } catch (AccessControlException exp) {
             throw new SecurityException(exp.getMessage());
         }

@@ -132,18 +132,14 @@ public class SmartcardError implements Parcelable {
      * RuntimeException.
      * 
      * @throws RuntimeException if the encoded exception is not a CardException.
-     * @throws CardException if a CardException is encoded.
      */
-    public void throwException() throws CardException {
+    public void throwException() {
         Exception e = createException();
         if (e == null) {
             return;
         }
         if (e instanceof MissingResourceException) {
             return;
-        }
-        if (e instanceof CardException) {
-            throw (CardException) e;
         }
         if (e instanceof RuntimeException) {
             throw (RuntimeException) e;

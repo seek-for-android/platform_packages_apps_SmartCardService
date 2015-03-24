@@ -37,7 +37,6 @@ import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.Random;
 
 
 import android.content.pm.PackageManager;
@@ -219,29 +218,25 @@ public class Terminal {
      *
      * @param session the Session that should be closed
      * @throws RemoteException
-     * @throws CardException
      * @throws NullPointerException if Session is null
      */
-    synchronized void closeSession(Session session)
-            throws CardException {
+    synchronized void closeSession(Session session, SmartcardError error) {
         if (session == null) {
             throw new NullPointerException("session is null");
         }
         if (!session.isClosed()) {
-            SmartcardError error = new SmartcardError();
-            session.closeChannels();
-            error.throwException();
+            session.closeChannels(error);
             session.setClosed();
         }
         mSessions.remove(session);
     }
 
-    private void closeSessions(SmartcardError error) throws CardException {
+    private void closeSessions(SmartcardError error) {
         synchronized (mLock) {
             Iterator<Session> iter = mSessions.iterator();
             while (iter.hasNext()) {
                 Session session = iter.next();
-                closeSession(session);
+                closeSession(session, error);
                 iter = mSessions.iterator();
             }
             mSessions.clear();
@@ -292,10 +287,8 @@ public class Terminal {
      *
      * @param channelNumber The channel to be closed.
      *
-     * @throws CardException If the channel could not be closed.
      */
-    protected void internalCloseLogicalChannel(int channelNumber)
-            throws CardException {
+    protected void internalCloseLogicalChannel(int channelNumber) {
         if(channelNumber == 0) {
             byte[] selectCommand = new byte[5];
             selectCommand[0] = 0x00;
@@ -346,10 +339,8 @@ public class Terminal {
      *
      * @param command the command APDU to be transmitted.
      * @return the response APDU received.
-     * @throws CardException if the transmit operation failed.
      */
-    protected byte[] internalTransmit(byte[] command)
-            throws CardException {
+    protected byte[] internalTransmit(byte[] command) {
         SmartcardError error = new SmartcardError();
         try {
             byte[] response = mTerminalService.internalTransmit(command, error);
@@ -357,7 +348,7 @@ public class Terminal {
             return response;
         } catch(RemoteException e) {
             error.throwException();
-            throw new CardException("Remote Exception");
+            return null;
         }
     }
 
@@ -398,12 +389,12 @@ public class Terminal {
         }
 
         if (getBasicChannel() != null) {
-            throw new CardException("basic channel in use");
+            throw new IllegalStateException("basic channel in use");
         }
         Channel basicChannel;
         if (aid == null) {
             if (!mDefaultApplicationSelectedOnBasicChannel) {
-                throw new CardException("default application is not selected");
+                throw new IllegalStateException("default application is not selected");
             }
             basicChannel = new Channel(session, this, 0, null, callback);
             basicChannel.hasSelectedAid(false, null);
@@ -474,68 +465,56 @@ public class Terminal {
      * @param commandName the name of the smart card command for logging
      *            purposes. May be <code>null</code>.
      * @return the response received.
-     * @throws CardException if the transmit operation or the minimum response
-     *             length check or the status word check failed.
      */
     public synchronized byte[] transmit(
             byte[] cmd,
             int minRspLength,
             int swExpected,
             int swMask,
-            String commandName)
-                    throws CardException {
+            String commandName) {
 
         byte[] rsp= internalTransmit(cmd);
-        try {
-            if (rsp.length >= 2) {
-                int sw1 = rsp[rsp.length - 2] & 0xFF;
-                if (sw1 == 0x6C) {
-                    cmd[cmd.length - 1] = rsp[rsp.length - 1];
-                    rsp = internalTransmit(cmd);
-                } else if (sw1 == 0x61) {
-                    byte[] getResponseCmd = new byte[] {
-                            cmd[0], (byte) 0xC0, 0x00, 0x00, 0x00
-                    };
-                    byte[] response = new byte[rsp.length - 2];
-                    System.arraycopy(rsp, 0, response, 0, rsp.length - 2);
-                    while (true) {
-                        getResponseCmd[4] = rsp[rsp.length - 1];
-                        rsp = internalTransmit(getResponseCmd);
-                        if (rsp.length >= 2 && rsp[rsp.length - 2] == 0x61) {
-                            response = Util.appendResponse(
-                                    response, rsp, rsp.length - 2);
-                        } else {
-                            response = Util.appendResponse(response, rsp, rsp.length);
-                            break;
-                        }
+        if (rsp.length >= 2) {
+            int sw1 = rsp[rsp.length - 2] & 0xFF;
+            if (sw1 == 0x6C) {
+                cmd[cmd.length - 1] = rsp[rsp.length - 1];
+                rsp = internalTransmit(cmd);
+            } else if (sw1 == 0x61) {
+                byte[] getResponseCmd = new byte[] {
+                        cmd[0], (byte) 0xC0, 0x00, 0x00, 0x00
+                };
+                byte[] response = new byte[rsp.length - 2];
+                System.arraycopy(rsp, 0, response, 0, rsp.length - 2);
+                while (true) {
+                    getResponseCmd[4] = rsp[rsp.length - 1];
+                    rsp = internalTransmit(getResponseCmd);
+                    if (rsp.length >= 2 && rsp[rsp.length - 2] == 0x61) {
+                        response = Util.appendResponse(
+                                response, rsp, rsp.length - 2);
+                    } else {
+                        response = Util.appendResponse(response, rsp, rsp.length);
+                        break;
                     }
-                    rsp = response;
                 }
-            }
-        } catch (Exception e) {
-            if (commandName == null) {
-                throw new CardException(e.getMessage());
-            } else {
-                throw new CardException(
-                        Util.createMessage(commandName, "transmit failed"), e);
+                rsp = response;
             }
         }
         if (minRspLength > 0) {
             if (rsp == null || rsp.length < minRspLength) {
-                throw new CardException(
+                throw new IllegalStateException(
                         Util.createMessage(commandName, "response too small"));
             }
         }
         if (swMask != 0) {
             if (rsp == null || rsp.length < 2) {
-                throw new CardException(
+                throw new IllegalArgumentException(
                         Util.createMessage(commandName, "SW1/2 not available"));
             }
             int sw1 = rsp[rsp.length - 2] & 0xFF;
             int sw2 = rsp[rsp.length - 1] & 0xFF;
             int sw = (sw1 << 8) | sw2;
             if ((sw & swMask) != (swExpected & swMask)) {
-                throw new CardException(Util.createMessage(commandName, sw));
+                throw new IllegalArgumentException(Util.createMessage(commandName, sw));
             }
         }
         return rsp;
@@ -637,10 +616,9 @@ public class Terminal {
         public void closeSessions(SmartcardError error) throws RemoteException {
 
             Util.clearError(error);
-            try {
-                Terminal.this.closeSessions(error);
-            } catch (CardException e) {
-                e.printStackTrace();
+            Terminal.this.closeSessions(error);
+            if(error.createException() != null) {
+                error.throwException();
             }
         }
     }

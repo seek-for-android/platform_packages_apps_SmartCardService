@@ -22,7 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.AccessControlException;
 
-import org.simalliance.openmobileapi.service.CardException;
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.security.CommandApdu;
 import org.simalliance.openmobileapi.service.security.ResponseApdu;
@@ -52,7 +51,7 @@ public class AccessRuleApplet {
         mChannel = channel;
     }
 
-    public byte[] readSpecificAccessRule( byte[] aid_ref_do ) throws AccessControlException, CardException {
+    public byte[] readSpecificAccessRule( byte[] aid_ref_do ) throws AccessControlException {
 
     	if( aid_ref_do == null ){
 			throw new AccessControlException("GET DATA (specific): Reference data object must not be null.");
@@ -117,7 +116,7 @@ public class AccessRuleApplet {
         }
     }
 
-    public byte[] readAllAccessRules() throws AccessControlException, CardException {
+    public byte[] readAllAccessRules() throws AccessControlException {
     	
     	ByteArrayOutputStream stream = new ByteArrayOutputStream();
     	int overallLen = 0;
@@ -181,7 +180,7 @@ public class AccessRuleApplet {
         }
     }
 
-    public byte[] readRefreshTag() throws AccessControlException, CardException {
+    public byte[] readRefreshTag() throws AccessControlException {
 
     	// send GET DATA (specific)
     	CommandApdu apdu = (CommandApdu) mGetRefreshTag.clone();
@@ -208,7 +207,7 @@ public class AccessRuleApplet {
         throw new AccessControlException("GET REFRESH TAG not successfull.");			
     }
 
-    private ResponseApdu send(CommandApdu cmdApdu) throws CardException {
+    private ResponseApdu send(CommandApdu cmdApdu) {
 
         byte[] response = mChannel.transmit(cmdApdu.toBytes());
 

@@ -36,7 +36,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import org.simalliance.openmobileapi.service.CardException;
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
 import org.simalliance.openmobileapi.service.SmartcardService;
@@ -343,7 +342,7 @@ public class AccessControlEnforcer {
         return channelAccess;
 	}    
     
-    public ChannelAccess getAccessRule( byte[] aid, Certificate[] appCerts, ISmartcardServiceCallback callback  ) throws AccessControlException, CardException, CertificateEncodingException {
+    public ChannelAccess getAccessRule( byte[] aid, Certificate[] appCerts, ISmartcardServiceCallback callback  ) throws AccessControlException, CertificateEncodingException {
 
     	ChannelAccess channelAccess = null;
     	
@@ -428,8 +427,7 @@ public class AccessControlEnforcer {
     public synchronized boolean[] isNFCEventAllowed( 
     		byte[] aid,
     		String[] packageNames, 
-    		ISmartcardServiceCallback callback) 
-    				throws CardException
+    		ISmartcardServiceCallback callback)
     {
     	if( mUseAra || mUseArf ){
     		return internal_isNFCEventAllowed(aid, packageNames, callback);
@@ -447,8 +445,7 @@ public class AccessControlEnforcer {
     
     private synchronized boolean[] internal_isNFCEventAllowed(byte[] aid,
 			   String[] packageNames, 
-			   ISmartcardServiceCallback callback) 
-					   throws CardException
+			   ISmartcardServiceCallback callback)
     {
 	 	// the NFC Event Flags boolean array is created and filled in internal_enableAccessConditions.
 	 	mNfcEventFlags = new boolean[packageNames.length];

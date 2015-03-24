@@ -85,28 +85,19 @@ public class Channel implements IBinder.DeathRecipient {
         try {
             Log.e(SmartcardService._TAG, Thread.currentThread().getName()
                     + " Client " + mBinder.toString() + " died");
-            close();
+            close(new SmartcardError());
         } catch (Exception ignore) {
         }
     }
 
-    public synchronized void close() throws CardException {
-
-
+    public synchronized void close(SmartcardError error) {
         Terminal terminal = getTerminal();
         if (terminal == null) {
-            throw new IllegalStateException(
-                    "channel is not attached to a terminal");
+            error.setError(RuntimeException.class, "channel is not attached to a terminal");
         }
-
-        try {
-            terminal.internalCloseLogicalChannel(getChannelNumber());
-            this.mIsClosed = true;
-        } catch (Exception e) {
-            throw new CardException(e.getMessage());
-        } finally {
-            mBinder.unlinkToDeath(this, 0);
-        }
+        terminal.internalCloseLogicalChannel(getChannelNumber());
+        this.mIsClosed = true;
+        mBinder.unlinkToDeath(this, 0);
     }
 
     public int getChannelNumber() {
@@ -153,7 +144,7 @@ public class Channel implements IBinder.DeathRecipient {
         this.mHandle = handle;
     }
 
-    public byte[] transmit(byte[] command) throws CardException {
+    public byte[] transmit(byte[] command) {
         
         if (mChannelAccess == null) {
             throw new AccessControlException(" Channel access not set.");
@@ -195,7 +186,7 @@ public class Channel implements IBinder.DeathRecipient {
         return getTerminal().transmit(command, 2, 0, 0, null);
     }
 
-    public boolean selectNext() throws CardException {
+    public boolean selectNext() {
         
         if (mChannelAccess == null) {
             throw new AccessControlException(" Channel access not set.");
@@ -209,7 +200,7 @@ public class Channel implements IBinder.DeathRecipient {
         
 
         if (mAid == null || mAid.length == 0) {
-            throw new CardException(" no aid given");
+            throw new IllegalArgumentException(" No aid given ");
         }
 
         mSelectResponse = null;
@@ -345,7 +336,7 @@ public class Channel implements IBinder.DeathRecipient {
 
             Util.clearError(error);
             try {
-                Channel.this.close();
+                Channel.this.close(error);
             } catch (Exception e) {
                 Util.setError(error, e);
             } finally {

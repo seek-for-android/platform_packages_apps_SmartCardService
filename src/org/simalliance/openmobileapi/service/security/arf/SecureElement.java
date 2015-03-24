@@ -24,6 +24,7 @@ import android.util.Log;
 import java.util.MissingResourceException;
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
+import org.simalliance.openmobileapi.service.SmartcardError;
 import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 import org.simalliance.openmobileapi.service.security.arf.PKCS15.EF;
@@ -125,7 +126,7 @@ public class SecureElement {
         try {
             if( mArfChannel != null){
 
-            	mArfChannel.close();
+            	mArfChannel.close(new SmartcardError());
             	mArfChannel = null;
             } else {
 

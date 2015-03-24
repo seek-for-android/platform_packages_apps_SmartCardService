@@ -74,21 +74,17 @@ public class Session {
         if (mReader == null) {
             return;
         }
-        try {
-            mReader.closeSession(this);
-        } catch (CardException e) {
-            Util.setError(error, e);
-        }
+        mReader.closeSession(this, error);
     }
 
-    public void closeChannels() {
+    public void closeChannels(SmartcardError error) {
         synchronized (mLock) {
             Collection<Channel> col = mChannels.values();
             Channel[] channelList = col.toArray(new Channel[col.size()]);
             for (Channel channel : channelList) {
                 if (channel != null && !channel.isClosed()) {
                     try {
-                        channel.close();
+                        channel.close(error);
                         mIsClosed = true;
                     } catch (Exception ignore) {
                         Log.e(_TAG, "ServiceSession channel - close"
@@ -309,11 +305,14 @@ public class Session {
         public void close(SmartcardError error) throws RemoteException {
             Util.clearError(error);
             Session.this.close(error);
+            if(error.createException() != null) {
+                error.throwException();
+            }
         }
 
         @Override
         public void closeChannels(SmartcardError error) throws RemoteException {
-            Session.this.closeChannels();
+            Session.this.closeChannels(error);
         }
 
         @Override

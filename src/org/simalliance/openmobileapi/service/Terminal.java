@@ -52,9 +52,6 @@ import org.simalliance.openmobileapi.service.security.ChannelAccess;
  */
 public class Terminal {
 
-    /** Random number generator used for handle creation. */
-    static Random mRandom = new Random();
-
     private static final String _TAG = "Terminal";
 
     protected Context mContext;
@@ -303,7 +300,6 @@ public class Terminal {
     protected void internalCloseLogicalChannel(int channelNumber)
             throws CardException {
         if(channelNumber == 0) {
-            mSelectResponse = null;
             byte[] selectCommand = new byte[5];
             selectCommand[0] = 0x00;
             selectCommand[1] = (byte) 0xA4;
@@ -311,7 +307,7 @@ public class Terminal {
             selectCommand[3] = 0x00;
             selectCommand[4] = 0x00;
             try {
-                mSelectResponse = transmit(
+                transmit(
                         selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
             } catch (Exception exp) {
                 // Selection of the default application fails
@@ -322,7 +318,6 @@ public class Terminal {
                     if (getAccessControlEnforcer() != null) {
                         byte[] aid = AccessControlEnforcer
                                 .getDefaultAccessControlAid();
-                        mSelectResponse = null;
                         selectCommand = new byte[aid.length + 6];
                         selectCommand[0] = 0x00;
                         selectCommand[1] = (byte) 0xA4;
@@ -331,7 +326,7 @@ public class Terminal {
                         selectCommand[4] = (byte) aid.length;
                         System.arraycopy(aid, 0, selectCommand, 5, aid.length);
                         // TODO: also accept 62XX and 63XX as valid SW
-                        mSelectResponse = transmit(
+                        transmit(
                                 selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
                     }
                 } catch (NoSuchElementException exp2) {

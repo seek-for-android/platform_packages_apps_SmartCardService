@@ -105,13 +105,7 @@ public class Session {
         return mIsClosed;
     }
 
-    public ISmartcardServiceChannel openBasicChannel(
-            ISmartcardServiceCallback callback, SmartcardError error)
-            throws RemoteException {
-        return openBasicChannelAid(null, callback, error);
-    }
-
-    public ISmartcardServiceChannel openBasicChannelAid(byte[] aid,
+    public ISmartcardServiceChannel openBasicChannel(byte[] aid,
                                                         ISmartcardServiceCallback callback, SmartcardError error)
             throws RemoteException {
         Util.clearError(error);
@@ -332,7 +326,7 @@ public class Session {
         public ISmartcardServiceChannel openBasicChannel(
                 ISmartcardServiceCallback callback, SmartcardError error)
                 throws RemoteException {
-            return Session.this.openBasicChannel(callback, error);
+            return Session.this.openBasicChannel(null, callback, error);
         }
 
         @Override
@@ -340,7 +334,7 @@ public class Session {
                                                             ISmartcardServiceCallback callback, SmartcardError error)
                 throws RemoteException {
             Util.clearError(error);
-            return Session.this.openBasicChannelAid(aid, callback, error);
+            return Session.this.openBasicChannel(aid, callback, error);
         }
 
         @Override

@@ -312,7 +312,11 @@ public class Session {
 
         @Override
         public void closeChannels(SmartcardError error) throws RemoteException {
+            Util.clearError(error);
             Session.this.closeChannels(error);
+            if(error.createException() != null) {
+                error.throwException();
+            }
         }
 
         @Override
@@ -325,6 +329,7 @@ public class Session {
         public ISmartcardServiceChannel openBasicChannel(
                 ISmartcardServiceCallback callback, SmartcardError error)
                 throws RemoteException {
+            Util.clearError(error);
             return Session.this.openBasicChannel(null, callback, error);
         }
 

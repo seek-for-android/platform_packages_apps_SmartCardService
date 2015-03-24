@@ -64,13 +64,14 @@ public class Channel implements IBinder.DeathRecipient {
     Channel(Session session,
             Terminal terminal,
             int channelNumber,
+            byte[] selectResponse,
             ISmartcardServiceCallback callback) {
         this.mChannelNumber = channelNumber;
         this.mSession = session;
         this.mTerminal = terminal;
         this.mCallback = callback;
         this.mBinder = callback.asBinder();
-        this.mSelectResponse = terminal.getSelectResponse();
+        this.mSelectResponse = selectResponse;
         this.mIsClosed = false;
         try {
             mBinder.linkToDeath(this, 0);

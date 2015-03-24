@@ -64,8 +64,6 @@ public class Terminal {
 
     protected ServiceConnection mTerminalConnection;
 
-    protected byte[] mSelectResponse;
-
     private final ArrayList<Session> mSessions
             = new ArrayList<Session>();
 
@@ -273,7 +271,7 @@ public class Terminal {
      *
      * @throws Exception If the channel could not be opened.
      */
-    protected int internalOpenLogicalChannel(byte[] aid)
+    protected OpenLogicalChannelResponse internalOpenLogicalChannel(byte[] aid)
             throws Exception {
         SmartcardError error = new SmartcardError();
         try {
@@ -282,8 +280,7 @@ public class Terminal {
             if(ex != null) {
                 throw ex;
             }
-            mSelectResponse = response.getSelectResponse();
-            return response.getChannel();
+            return response;
         } catch(RemoteException e) {
             error.throwException();
             throw e;
@@ -408,7 +405,7 @@ public class Terminal {
             if (!mDefaultApplicationSelectedOnBasicChannel) {
                 throw new CardException("default application is not selected");
             }
-            basicChannel = new Channel(session, this, 0, callback);
+            basicChannel = new Channel(session, this, 0, null, callback);
             basicChannel.hasSelectedAid(false, null);
 
         } else {
@@ -416,7 +413,7 @@ public class Terminal {
             if (aid == null) {
                 throw new NullPointerException("aid must not be null");
             }
-            mSelectResponse = null;
+            byte[] selectResponse = null;
             byte[] selectCommand = new byte[aid.length + 6];
             selectCommand[0] = 0x00;
             selectCommand[1] = (byte) 0xA4;
@@ -426,13 +423,13 @@ public class Terminal {
             System.arraycopy(aid, 0, selectCommand, 5, aid.length);
             try {
                 // TODO: also accept 62XX and 63XX as valid SW
-                mSelectResponse = transmit(
+                selectResponse = transmit(
                         selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
             } catch (Exception exp) {
                 throw new NoSuchElementException(exp.getMessage());
             }
 
-            basicChannel = new Channel(session, this, 0, callback);
+            basicChannel = new Channel(session, this, 0, selectResponse, callback);
             basicChannel.hasSelectedAid(true, aid);
             mDefaultApplicationSelectedOnBasicChannel = false;
         }
@@ -449,10 +446,10 @@ public class Terminal {
             throw new NullPointerException("callback must not be null");
         }
 
-        int channelNumber = internalOpenLogicalChannel(aid);
+        OpenLogicalChannelResponse rsp = internalOpenLogicalChannel(aid);
 
 
-        Channel logicalChannel = new Channel(session, this, channelNumber, callback);
+        Channel logicalChannel = new Channel(session, this, rsp.getChannel(), rsp.getSelectResponse(), callback);
         logicalChannel.hasSelectedAid(true, aid);
         return logicalChannel;
     }
@@ -542,10 +539,6 @@ public class Terminal {
             }
         }
         return rsp;
-    }
-
-    public byte[] getSelectResponse() {
-        return mSelectResponse;
     }
 
     public byte[] simIOExchange(int fileID, String filePath, byte[] cmd)

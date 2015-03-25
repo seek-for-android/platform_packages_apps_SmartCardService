@@ -16,7 +16,7 @@
 
 package org.simalliance.openmobileapi;
 
-import org.simalliance.openmobileapi.common.internal.ErrorStrings;
+import org.simalliance.openmobileapi.internal.ErrorStrings;
 
 /**
  * Instances of this class can be used to find a Secure Element implementing a

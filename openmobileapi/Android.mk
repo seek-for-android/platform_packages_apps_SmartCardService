@@ -15,6 +15,7 @@ include $(BUILD_PREBUILT)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
+LOCAL_SRC_FILES += \ $(call all-java-files-under, ../common/src)
 LOCAL_SRC_FILES += \
       src/org/simalliance/openmobileapi/service/ISmartcardServiceCallback.aidl \
       src/org/simalliance/openmobileapi/service/ISmartcardServiceReader.aidl \

@@ -18,8 +18,8 @@ package org.simalliance.openmobileapi;
 
 import java.util.Arrays;
 
-import org.simalliance.openmobileapi.common.internal.ErrorStrings;
-import org.simalliance.openmobileapi.common.internal.HistoricalBytesUtilities;
+import org.simalliance.openmobileapi.internal.ErrorStrings;
+import org.simalliance.openmobileapi.internal.HistoricalBytesUtilities;
 
 /**
  * Instances of this class can be used to find a Secure Element with a specific

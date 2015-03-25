@@ -19,11 +19,11 @@ package org.simalliance.openmobileapi;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.simalliance.openmobileapi.common.internal.ByteArrayConverter;
-import org.simalliance.openmobileapi.common.internal.ErrorStrings;
-import org.simalliance.openmobileapi.common.util.CommandApdu;
-import org.simalliance.openmobileapi.common.util.ISO7816;
-import org.simalliance.openmobileapi.common.util.ResponseApdu;
+import org.simalliance.openmobileapi.internal.ByteArrayConverter;
+import org.simalliance.openmobileapi.internal.ErrorStrings;
+import org.simalliance.openmobileapi.util.CommandApdu;
+import org.simalliance.openmobileapi.util.ISO7816;
+import org.simalliance.openmobileapi.util.ResponseApdu;
 
 /**
  * This class provides an API to store and retrieve data on the SE which is

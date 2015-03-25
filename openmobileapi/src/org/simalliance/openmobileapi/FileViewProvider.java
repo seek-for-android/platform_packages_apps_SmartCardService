@@ -18,13 +18,13 @@ package org.simalliance.openmobileapi;
 
 import java.io.IOException;
 
-import org.simalliance.openmobileapi.common.internal.BerTlvParser;
-import org.simalliance.openmobileapi.common.internal.ByteArrayConverter;
-import org.simalliance.openmobileapi.common.internal.ErrorStrings;
-import org.simalliance.openmobileapi.common.internal.TlvEntryWrapper;
-import org.simalliance.openmobileapi.common.util.CommandApdu;
-import org.simalliance.openmobileapi.common.util.ISO7816;
-import org.simalliance.openmobileapi.common.util.ResponseApdu;
+import org.simalliance.openmobileapi.internal.BerTlvParser;
+import org.simalliance.openmobileapi.internal.ByteArrayConverter;
+import org.simalliance.openmobileapi.internal.ErrorStrings;
+import org.simalliance.openmobileapi.internal.TlvEntryWrapper;
+import org.simalliance.openmobileapi.util.CommandApdu;
+import org.simalliance.openmobileapi.util.ISO7816;
+import org.simalliance.openmobileapi.util.ResponseApdu;
 
 /**
  * This Provider class simplifies file operations on Secure Elements with a file

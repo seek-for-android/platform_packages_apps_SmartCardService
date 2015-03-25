@@ -1,4 +1,4 @@
-package org.simalliance.openmobileapi.common.util;
+package org.simalliance.openmobileapi.util;
 
 /**
  * This object represents ISO/IEC 7816.

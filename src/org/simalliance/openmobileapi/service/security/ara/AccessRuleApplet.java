@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.security.AccessControlException;
 
 import org.simalliance.openmobileapi.service.Channel;
+import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.CommandApdu;
 import org.simalliance.openmobileapi.service.security.ResponseApdu;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.BerTlv;
@@ -45,10 +46,10 @@ public class AccessRuleApplet {
     final private static CommandApdu mGetRefreshTag = new CommandApdu(0x80, 0xCA, 0xDF, 0x20, _MAX_LEN );
     
 
-    private Channel mChannel = null;
+    private Terminal mTerminal = null;
 
-    public AccessRuleApplet(Channel channel) {
-        mChannel = channel;
+    public AccessRuleApplet(Terminal terminal) {
+        mTerminal = terminal;
     }
 
     public byte[] readSpecificAccessRule( byte[] aid_ref_do ) throws AccessControlException {
@@ -209,8 +210,7 @@ public class AccessRuleApplet {
 
     private ResponseApdu send(CommandApdu cmdApdu) {
 
-        byte[] response = mChannel.transmit(cmdApdu.toBytes());
-
+        byte[] response = mTerminal.transmit(cmdApdu.toBytes(), 2, 0, 0, null);
         ResponseApdu resApdu = new ResponseApdu(response);
         return resApdu;
     }

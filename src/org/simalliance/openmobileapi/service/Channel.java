@@ -61,7 +61,7 @@ public class Channel implements IBinder.DeathRecipient {
     protected boolean mHasSelectedAid = false;
     protected byte[] mAid = null;
 
-    Channel(Session session,
+    public Channel(Session session,
             Terminal terminal,
             int channelNumber,
             byte[] selectResponse,

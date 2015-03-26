@@ -266,7 +266,7 @@ public class Terminal {
      *
      * @throws Exception If the channel could not be opened.
      */
-    protected OpenLogicalChannelResponse internalOpenLogicalChannel(byte[] aid)
+    public OpenLogicalChannelResponse internalOpenLogicalChannel(byte[] aid)
             throws Exception {
         SmartcardError error = new SmartcardError();
         try {
@@ -288,7 +288,7 @@ public class Terminal {
      * @param channelNumber The channel to be closed.
      *
      */
-    protected void internalCloseLogicalChannel(int channelNumber) {
+    public void internalCloseLogicalChannel(int channelNumber) {
         if(channelNumber == 0) {
             byte[] selectCommand = new byte[5];
             selectCommand[0] = 0x00;
@@ -340,7 +340,7 @@ public class Terminal {
      * @param command the command APDU to be transmitted.
      * @return the response APDU received.
      */
-    protected byte[] internalTransmit(byte[] command) {
+    public byte[] internalTransmit(byte[] command) {
         SmartcardError error = new SmartcardError();
         try {
             byte[] response = mTerminalService.internalTransmit(command, error);

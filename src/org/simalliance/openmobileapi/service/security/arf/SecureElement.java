@@ -24,6 +24,7 @@ import android.util.Log;
 import java.util.MissingResourceException;
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
+import org.simalliance.openmobileapi.service.OpenLogicalChannelResponse;
 import org.simalliance.openmobileapi.service.SmartcardError;
 import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
@@ -85,9 +86,8 @@ public class SecureElement {
             if (mSEInterface==SIM_IO) { 
 
                 return mTerminalHandle.simIOExchange(ef.getFileId(),ef.getFilePath(),cmd);
-            } else { 
-
-            	return mArfChannel.transmit(cmd);
+            } else {
+            	return mTerminalHandle.transmit(cmd, 2, 0, 0, null);
             }
 		} catch (Exception e) {
 	            throw new SecureElementException("Secure Element access error " + e.getLocalizedMessage());
@@ -102,8 +102,8 @@ public class SecureElement {
      */
     public Channel openLogicalArfChannel(byte[] AID) {
         try {
-
-            mArfChannel=mTerminalHandle.openLogicalChannel(null,AID,mCallback);
+            OpenLogicalChannelResponse rsp = mTerminalHandle.internalOpenLogicalChannel(AID);
+            mArfChannel = new Channel(null, null, rsp.getChannel(), rsp.getSelectResponse(), mCallback);
             setUpChannelAccess(mArfChannel);
             return mArfChannel;
         } catch(Exception e) { 
@@ -125,8 +125,7 @@ public class SecureElement {
     public void closeArfChannel() {
         try {
             if( mArfChannel != null){
-
-            	mArfChannel.close(new SmartcardError());
+                mTerminalHandle.internalCloseLogicalChannel(mArfChannel.getChannelNumber());
             	mArfChannel = null;
             } else {
 

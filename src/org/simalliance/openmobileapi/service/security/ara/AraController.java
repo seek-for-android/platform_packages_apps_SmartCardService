@@ -26,6 +26,7 @@ import java.util.MissingResourceException;
 
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
+import org.simalliance.openmobileapi.service.OpenLogicalChannelResponse;
 import org.simalliance.openmobileapi.service.SmartcardError;
 import org.simalliance.openmobileapi.service.Terminal;
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
@@ -88,7 +89,7 @@ public class AraController {
 
         try {
             // set new applet handler since a new channel is used.
-        	mApplet = new AccessRuleApplet(channel);
+        	mApplet = new AccessRuleApplet(mTerminal);
         	byte[] tag = mApplet.readRefreshTag();
         	// if refresh tag is equal to the previous one it is not
         	// neccessary to read all rules again.
@@ -199,7 +200,8 @@ public class AraController {
     {
 
 
-        Channel channel = terminal.openLogicalChannel(null, aid, callback);
+        OpenLogicalChannelResponse rsp = terminal.internalOpenLogicalChannel(aid);
+        Channel channel = new Channel(null, null, rsp.getChannel(), rsp.getSelectResponse(), callback);
 
         // set access conditions to access ARA-M.
         ChannelAccess araChannelAccess = new ChannelAccess();
@@ -214,7 +216,7 @@ public class AraController {
 
         if (channel != null && channel.getChannelNumber() != 0) {
 
-            channel.close(new SmartcardError());
+            mTerminal.internalCloseLogicalChannel(channel.getChannelNumber());
 
         }
 

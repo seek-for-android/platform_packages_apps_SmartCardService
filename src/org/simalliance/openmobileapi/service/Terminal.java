@@ -368,6 +368,14 @@ public class Terminal {
     }
 
     /**
+     * Returns if the default application is selected on basic channel.
+     *
+     * @return the true if default application is selected on the basic channel.
+     */
+    public boolean getDefaultApplicationSelectedOnBasicChannel() {
+        return mDefaultApplicationSelectedOnBasicChannel;
+    }
+    /**
      * Returns <code>true</code> if a card is present; <code>false</code>
      * otherwise.
      *
@@ -377,55 +385,6 @@ public class Terminal {
      */
     boolean isCardPresent() throws Exception {
         return mTerminalService.isCardPresent();
-    }
-
-    public Channel openBasicChannel(
-            Session session,
-            byte[] aid,
-            ISmartcardServiceCallback callback)
-                    throws Exception {
-        if (callback == null) {
-            throw new NullPointerException("callback must not be null");
-        }
-
-        if (getBasicChannel() != null) {
-            throw new IllegalStateException("basic channel in use");
-        }
-        Channel basicChannel;
-        if (aid == null) {
-            if (!mDefaultApplicationSelectedOnBasicChannel) {
-                throw new IllegalStateException("default application is not selected");
-            }
-            basicChannel = new Channel(session, this, 0, null, callback);
-            basicChannel.hasSelectedAid(false, null);
-
-        } else {
-            // Select command
-            if (aid == null) {
-                throw new NullPointerException("aid must not be null");
-            }
-            byte[] selectResponse = null;
-            byte[] selectCommand = new byte[aid.length + 6];
-            selectCommand[0] = 0x00;
-            selectCommand[1] = (byte) 0xA4;
-            selectCommand[2] = 0x04;
-            selectCommand[3] = 0x00;
-            selectCommand[4] = (byte) aid.length;
-            System.arraycopy(aid, 0, selectCommand, 5, aid.length);
-            try {
-                // TODO: also accept 62XX and 63XX as valid SW
-                selectResponse = transmit(
-                        selectCommand, 2, 0x9000, 0xFFFF, "SELECT ON BASIC CHANNEL");
-            } catch (Exception exp) {
-                throw new NoSuchElementException(exp.getMessage());
-            }
-
-            basicChannel = new Channel(session, this, 0, selectResponse, callback);
-            basicChannel.hasSelectedAid(true, aid);
-
-        }
-        return basicChannel;
-
     }
 
     public boolean isConnected() {

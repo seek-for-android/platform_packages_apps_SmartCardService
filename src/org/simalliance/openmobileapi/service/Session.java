@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Random;
 
 /**
@@ -150,14 +151,36 @@ public class Session {
 
 
             Log.v(_TAG, "OpenBasicChannel(AID)");
-
+            if (mReader.getBasicChannel() != null) {
+                throw new IllegalStateException("basic channel in use");
+            }
             Channel channel;
             if (noAid) {
-                channel = mReader.openBasicChannel(this, null,
-                        callback);
+                if (!mReader.getDefaultApplicationSelectedOnBasicChannel()) {
+                    throw new IllegalStateException("default application is not selected");
+                }
+                channel = new Channel(this, mReader, 0, null, callback);
+                channel.hasSelectedAid(false, null);
+
             } else {
-                channel = mReader.openBasicChannel(this, aid,
-                        callback);
+                byte[] selectResponse = null;
+                byte[] selectCommand = new byte[aid.length + 6];
+                selectCommand[0] = 0x00;
+                selectCommand[1] = (byte) 0xA4;
+                selectCommand[2] = 0x04;
+                selectCommand[3] = 0x00;
+                selectCommand[4] = (byte) aid.length;
+                System.arraycopy(aid, 0, selectCommand, 5, aid.length);
+                try {
+                    // TODO: also accept 62XX and 63XX as valid SW
+                    selectResponse = transmit(
+                            selectCommand, 2, 0x9000, 0xFFFF, "SELECT ON BASIC CHANNEL");
+                } catch (Exception exp) {
+                    throw new NoSuchElementException(exp.getMessage());
+                }
+
+                channel = new Channel(this, mReader, 0, selectResponse, callback);
+                channel.hasSelectedAid(true, aid);
             }
 
             channel.setChannelAccess(channelAccess);

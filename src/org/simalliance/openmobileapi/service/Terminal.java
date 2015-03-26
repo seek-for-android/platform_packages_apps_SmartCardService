@@ -428,23 +428,6 @@ public class Terminal {
 
     }
 
-    public synchronized Channel openLogicalChannel(
-            Session session,
-            byte[] aid,
-            ISmartcardServiceCallback callback)
-                    throws Exception {
-        if (callback == null) {
-            throw new NullPointerException("callback must not be null");
-        }
-
-        OpenLogicalChannelResponse rsp = internalOpenLogicalChannel(aid);
-
-
-        Channel logicalChannel = new Channel(session, this, rsp.getChannel(), rsp.getSelectResponse(), callback);
-        logicalChannel.hasSelectedAid(true, aid);
-        return logicalChannel;
-    }
-
     public boolean isConnected() {
         return (mTerminalService != null);
     }

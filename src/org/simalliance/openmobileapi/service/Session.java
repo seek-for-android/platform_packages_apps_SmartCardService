@@ -228,12 +228,14 @@ public class Session {
 
             Log.v(_TAG, "OpenLogicalChannel");
             Channel channel;
+            OpenLogicalChannelResponse rsp;
             if (noAid) {
-                channel = mReader.openLogicalChannel(this, null,
-                        callback);
-            } else {
-                channel = mReader.openLogicalChannel(this,
-                        aid, callback);
+                aid = null;
+            }
+            synchronized (this) {
+                rsp = mReader.internalOpenLogicalChannel(aid);
+                channel = new Channel(this, mReader, rsp.getChannel(), rsp.getSelectResponse(), callback);
+                channel.hasSelectedAid(true, aid);
             }
 
             channel.setChannelAccess(channelAccess);

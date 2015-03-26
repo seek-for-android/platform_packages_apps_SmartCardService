@@ -89,7 +89,7 @@ public class AraController {
 
         try {
             // set new applet handler since a new channel is used.
-        	mApplet = new AccessRuleApplet(mTerminal);
+        	mApplet = new AccessRuleApplet(mTerminal, channel);
         	byte[] tag = mApplet.readRefreshTag();
         	// if refresh tag is equal to the previous one it is not
         	// neccessary to read all rules again.

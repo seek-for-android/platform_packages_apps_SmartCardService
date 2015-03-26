@@ -48,8 +48,11 @@ public class AccessRuleApplet {
 
     private Terminal mTerminal = null;
 
-    public AccessRuleApplet(Terminal terminal) {
+    private Channel mChannel = null;
+
+    public AccessRuleApplet(Terminal terminal, Channel channel) {
         mTerminal = terminal;
+        mChannel = channel;
     }
 
     public byte[] readSpecificAccessRule( byte[] aid_ref_do ) throws AccessControlException {
@@ -209,8 +212,11 @@ public class AccessRuleApplet {
     }
 
     private ResponseApdu send(CommandApdu cmdApdu) {
-
-        byte[] response = mTerminal.transmit(cmdApdu.toBytes(), 2, 0, 0, null);
+        byte[] cmd = cmdApdu.toBytes();
+        mTerminal.getAccessControlEnforcer()
+                .checkCommand(mChannel, cmd);
+        cmd[0] = mChannel.setChannelToClassByte(cmd[0], mChannel.getChannelNumber());
+        byte[] response = mTerminal.transmit(cmd, 2, 0, 0, null);
         ResponseApdu resApdu = new ResponseApdu(response);
         return resApdu;
     }

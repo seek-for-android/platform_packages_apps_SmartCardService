@@ -87,7 +87,10 @@ public class SecureElement {
 
                 return mTerminalHandle.simIOExchange(ef.getFileId(),ef.getFilePath(),cmd);
             } else {
-            	return mTerminalHandle.transmit(cmd, 2, 0, 0, null);
+                mTerminalHandle.getAccessControlEnforcer()
+                        .checkCommand(mArfChannel, cmd);
+                cmd[0] = mArfChannel.setChannelToClassByte(cmd[0], mArfChannel.getChannelNumber());
+                return mTerminalHandle.transmit(cmd, 2, 0, 0, null);
             }
 		} catch (Exception e) {
 	            throw new SecureElementException("Secure Element access error " + e.getLocalizedMessage());

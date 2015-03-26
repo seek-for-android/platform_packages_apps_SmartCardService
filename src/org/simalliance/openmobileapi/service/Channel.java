@@ -248,7 +248,7 @@ public class Channel implements IBinder.DeathRecipient {
      *         indicating the used coding (first/further interindustry class
      *         byte coding) might be modified
      */
-    private byte setChannelToClassByte(byte cla, int channelNumber) {
+    public byte setChannelToClassByte(byte cla, int channelNumber) {
         if (channelNumber < 4) {
             // b7 = 0 indicates the first interindustry class byte coding
             cla = (byte) ((cla & 0xBC) | channelNumber);

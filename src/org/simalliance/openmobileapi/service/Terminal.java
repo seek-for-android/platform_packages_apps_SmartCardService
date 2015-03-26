@@ -415,14 +415,14 @@ public class Terminal {
             try {
                 // TODO: also accept 62XX and 63XX as valid SW
                 selectResponse = transmit(
-                        selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
+                        selectCommand, 2, 0x9000, 0xFFFF, "SELECT ON BASIC CHANNEL");
             } catch (Exception exp) {
                 throw new NoSuchElementException(exp.getMessage());
             }
 
             basicChannel = new Channel(session, this, 0, selectResponse, callback);
             basicChannel.hasSelectedAid(true, aid);
-            mDefaultApplicationSelectedOnBasicChannel = false;
+
         }
         return basicChannel;
 
@@ -499,6 +499,9 @@ public class Terminal {
             if ((sw & swMask) != (swExpected & swMask)) {
                 throw new IllegalArgumentException(Util.createMessage(commandName, sw));
             }
+        }
+        if ("SELECT ON BASIC CHANNEL".equalsIgnoreCase(commandName)) {
+            mDefaultApplicationSelectedOnBasicChannel = false;
         }
         return rsp;
     }

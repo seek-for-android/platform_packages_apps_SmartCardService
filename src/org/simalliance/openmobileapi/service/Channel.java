@@ -183,7 +183,7 @@ public class Channel implements IBinder.DeathRecipient {
         // set channel number bits
         command[0] = setChannelToClassByte(command[0], mChannelNumber);
 
-        return getTerminal().transmit(command, 2, 0, 0, null);
+        return mSession.transmit(command, 2, 0, 0, null);
     }
 
     public boolean selectNext() {
@@ -216,7 +216,7 @@ public class Channel implements IBinder.DeathRecipient {
         selectCommand[0] = setChannelToClassByte(
                 selectCommand[0], mChannelNumber);
 
-        mSelectResponse = getTerminal().transmit(
+        mSelectResponse = mSession.transmit(
                 selectCommand, 2, 0, 0, "SELECT NEXT");
 
         

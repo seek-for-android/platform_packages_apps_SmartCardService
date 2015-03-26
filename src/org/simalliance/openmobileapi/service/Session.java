@@ -178,6 +178,31 @@ public class Session {
         }
     }
 
+    /**
+     * Transmits the specified command and returns the response. Optionally
+     * checks the response length and the response status word. The status word
+     * check is implemented as follows (sw = status word of the response):
+     * <p>
+     * if ((sw & swMask) != (swExpected & swMask)) throw new CardException();
+     * </p>
+     *
+     * @param cmd the command APDU to be transmitted.
+     * @param minRspLength the minimum length of received response to be
+     *            checked.
+     * @param swExpected the response status word to be checked.
+     * @param swMask the mask to be used for response status word comparison.
+     * @param commandName the name of the smart card command for logging
+     *            purposes. May be <code>null</code>.
+     * @return the response received.
+     */
+    public byte[] transmit(
+            byte[] cmd,
+            int minRspLength,
+            int swExpected,
+            int swMask,
+            String commandName) {
+        return mReader.transmit(cmd, minRspLength, swExpected, swMask, commandName);
+    }
     public ISmartcardServiceChannel openLogicalChannel(byte[] aid,
                                                        ISmartcardServiceCallback callback, SmartcardError error)
             throws RemoteException {

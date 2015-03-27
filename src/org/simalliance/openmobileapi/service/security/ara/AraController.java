@@ -201,7 +201,7 @@ public class AraController {
 
 
         OpenLogicalChannelResponse rsp = terminal.internalOpenLogicalChannel(aid);
-        Channel channel = new Channel(null, null, rsp.getChannel(), rsp.getSelectResponse(), callback);
+        Channel channel = new Channel(null, rsp.getChannel(), rsp.getSelectResponse(), callback);
 
         // set access conditions to access ARA-M.
         ChannelAccess araChannelAccess = new ChannelAccess();

@@ -106,7 +106,7 @@ public class SecureElement {
     public Channel openLogicalArfChannel(byte[] AID) {
         try {
             OpenLogicalChannelResponse rsp = mTerminalHandle.internalOpenLogicalChannel(AID);
-            mArfChannel = new Channel(null, null, rsp.getChannel(), rsp.getSelectResponse(), mCallback);
+            mArfChannel = new Channel(null, rsp.getChannel(), rsp.getSelectResponse(), mCallback);
             setUpChannelAccess(mArfChannel);
             return mArfChannel;
         } catch(Exception e) { 

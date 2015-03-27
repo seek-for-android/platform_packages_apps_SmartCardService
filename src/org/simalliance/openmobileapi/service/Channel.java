@@ -45,7 +45,6 @@ public class Channel implements IBinder.DeathRecipient {
     protected long mHandle;
 
     protected Session mSession;
-    protected Terminal mTerminal;
 
     protected byte[] mSelectResponse;
 
@@ -62,13 +61,11 @@ public class Channel implements IBinder.DeathRecipient {
     protected byte[] mAid = null;
 
     public Channel(Session session,
-            Terminal terminal,
             int channelNumber,
             byte[] selectResponse,
             ISmartcardServiceCallback callback) {
         this.mChannelNumber = channelNumber;
         this.mSession = session;
-        this.mTerminal = terminal;
         this.mCallback = callback;
         this.mBinder = callback.asBinder();
         this.mSelectResponse = selectResponse;
@@ -91,11 +88,7 @@ public class Channel implements IBinder.DeathRecipient {
     }
 
     public synchronized void close(SmartcardError error) {
-        Terminal terminal = getTerminal();
-        if (terminal == null) {
-            error.setError(RuntimeException.class, "channel is not attached to a terminal");
-        }
-        terminal.internalCloseLogicalChannel(getChannelNumber());
+        mSession.closeChannel(getChannelNumber());
         this.mIsClosed = true;
         mBinder.unlinkToDeath(this, 0);
     }
@@ -124,15 +117,6 @@ public class Channel implements IBinder.DeathRecipient {
      */
     long getHandle() {
         return mHandle;
-    }
-
-    /**
-     * Returns the associated terminal.
-     *
-     * @return the associated terminal.
-     */
-    public Terminal getTerminal() {
-        return mTerminal;
     }
 
     /**
@@ -276,15 +260,15 @@ public class Channel implements IBinder.DeathRecipient {
     }
 
     private void checkCommand(byte[] command) {
-        if (getTerminal().getAccessControlEnforcer() != null) {
+        if (mSession.getAccessControlEnforcer() != null) {
             // check command if it complies to the access rules.
             // if not an exception is thrown
-            getTerminal().getAccessControlEnforcer()
+            mSession.getAccessControlEnforcer()
                 .checkCommand(this, command);
         } else {
             throw new AccessControlException(
                     "FATAL: Access Controller not set for Terminal: "
-                    + getTerminal().getName());
+                    + mSession.getReaderName());
         }
     }
 

@@ -5,6 +5,7 @@ import android.os.Binder;
 import android.os.RemoteException;
 import android.util.Log;
 
+import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 
 import java.io.PrintWriter;
@@ -159,7 +160,7 @@ public class Session {
                 if (!mReader.getDefaultApplicationSelectedOnBasicChannel()) {
                     throw new IllegalStateException("default application is not selected");
                 }
-                channel = new Channel(this, mReader, 0, null, callback);
+                channel = new Channel(this, 0, null, callback);
                 channel.hasSelectedAid(false, null);
 
             } else {
@@ -179,7 +180,7 @@ public class Session {
                     throw new NoSuchElementException(exp.getMessage());
                 }
 
-                channel = new Channel(this, mReader, 0, selectResponse, callback);
+                channel = new Channel(this, 0, selectResponse, callback);
                 channel.hasSelectedAid(true, aid);
             }
 
@@ -282,7 +283,7 @@ public class Session {
             }
             synchronized (this) {
                 rsp = mReader.internalOpenLogicalChannel(aid);
-                channel = new Channel(this, mReader, rsp.getChannel(), rsp.getSelectResponse(), callback);
+                channel = new Channel(this, rsp.getChannel(), rsp.getSelectResponse(), callback);
                 channel.hasSelectedAid(true, aid);
             }
 
@@ -299,6 +300,10 @@ public class Session {
             Log.v(_TAG, "OpenLogicalChannel Exception: " + e.getMessage());
             return null;
         }
+    }
+
+    public void closeChannel(int channelNumber) {
+        mReader.internalCloseLogicalChannel(channelNumber);
     }
 
     /**
@@ -325,6 +330,14 @@ public class Session {
             }
         }
         return null;
+    }
+
+    public AccessControlEnforcer getAccessControlEnforcer() {
+        return mReader.getAccessControlEnforcer();
+    }
+
+    public String getReaderName() {
+        return mReader.getName();
     }
 
     public void dump(PrintWriter writer, String prefix) {

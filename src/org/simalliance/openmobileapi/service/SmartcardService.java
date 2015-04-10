@@ -133,6 +133,20 @@ public final class SmartcardService extends Service {
         return terminal;
     }
 
+    private boolean isValidTerminal(String packageName, String terminalType) throws PackageManager.NameNotFoundException {
+        Log.d(_TAG, "Check if "+ terminalType + " is a valid Terminal");
+        if ("SIM".equalsIgnoreCase(terminalType) || "eSE".equalsIgnoreCase(terminalType) || "SD".equalsIgnoreCase(terminalType)) {
+            String[] permissions = getPackageManager().getPackageInfo(packageName, PackageManager.GET_PERMISSIONS).requestedPermissions;
+            for(String permission : permissions) {
+                if("org.simalliance.openmobileapi.SYSTEM_TERMINAL".equals(permission)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
     private void createTerminals() {
         // Find Terminal packages
         PackageManager pm = getApplicationContext().getPackageManager();
@@ -153,6 +167,10 @@ public final class SmartcardService extends Service {
                         .loadClass(info.serviceInfo.name)
                         .getMethod("getType", (Class<?>[]) null)
                         .invoke(null, (Object[]) null);
+                if (!isValidTerminal(packageName, terminalType)) {
+                    Log.d(_TAG, "Invalid Terminal, not added");
+                    continue;
+                }
                 String name = terminalType + getIndexForTerminal(terminalType);
                 Log.d(_TAG, "Adding terminal " + name);
                 mTerminals.put(name, new Terminal(SmartcardService.this, name, info));

@@ -100,7 +100,7 @@ public class Terminal {
 
         mContext.bindService(
                 new Intent().setClassName(info.serviceInfo.packageName,
-                        info.serviceInfo.name),
+                        info.serviceInfo.name).setPackage(context.getPackageName()),
                 mTerminalConnection,
                 Context.BIND_AUTO_CREATE);
     }

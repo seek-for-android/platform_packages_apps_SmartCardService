@@ -138,6 +138,7 @@ public class SEService {
         };
 
         Intent intent = new Intent(ISmartcardService.class.getName());
+        intent.setPackage("org.simalliance.openmobileapi.service");
         boolean bindingSuccessful = mContext.bindService(intent, mConnection,
                 Context.BIND_AUTO_CREATE);
         Log.v(SERVICE_TAG, "bindingSuccessful: " + bindingSuccessful);

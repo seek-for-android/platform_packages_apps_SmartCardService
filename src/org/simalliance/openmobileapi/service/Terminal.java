@@ -46,6 +46,7 @@ import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 
 
+
 /**
  * Smartcard service base class for terminal resources.
  */
@@ -100,7 +101,7 @@ public class Terminal {
 
         mContext.bindService(
                 new Intent().setClassName(info.serviceInfo.packageName,
-                        info.serviceInfo.name).setPackage(context.getPackageName()),
+                        info.serviceInfo.name),
                 mTerminalConnection,
                 Context.BIND_AUTO_CREATE);
     }

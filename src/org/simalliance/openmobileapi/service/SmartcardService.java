@@ -119,6 +119,20 @@ public final class SmartcardService extends Service {
         return terminal.getBinder();
     }
 
+    private boolean isValidTerminal(String packageName, String terminalType) throws PackageManager.NameNotFoundException {
+        Log.d(LOG_TAG, "Check if "+ terminalType + " is a valid Terminal");
+        if ("SIM".equalsIgnoreCase(terminalType) || "eSE".equalsIgnoreCase(terminalType) || "SD".equalsIgnoreCase(terminalType)) {
+            String[] permissions = getPackageManager().getPackageInfo(packageName, PackageManager.GET_PERMISSIONS).requestedPermissions;
+            for(String permission : permissions) {
+                if("org.simalliance.openmobileapi.SYSTEM_TERMINAL".equals(permission)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
     private void createTerminals() {
         // Find Terminal packages
         PackageManager pm = getApplicationContext().getPackageManager();
@@ -139,6 +153,10 @@ public final class SmartcardService extends Service {
                         .loadClass(info.serviceInfo.name)
                         .getMethod("getType", (Class<?>[]) null)
                         .invoke(null, (Object[]) null);
+                if (!isValidTerminal(packageName, terminalType)) {
+                    Log.d(LOG_TAG, "Invalid Terminal, not added");
+                    continue;
+                }
                 String name = terminalType + getIndexForTerminal(terminalType);
                 Log.d(LOG_TAG, "Adding terminal " + name);
                 mTerminals.put(name, new Terminal(SmartcardService.this, name, info));
@@ -193,11 +211,11 @@ public final class SmartcardService extends Service {
     /**
      * The smartcard service interface implementation.
      */
-    private final ISmartcardService.Stub mSmartcardBinder = new ISmartcardService.Stub() {
+    private final ISmartcardService.Stub mSmartcardBinder
+        = new ISmartcardService.Stub() {
 
         @Override
         public String[] getReaders(SmartcardError error) throws RemoteException {
-            Log.v(LOG_TAG, "getReaders()");
             try {
                 return createTerminalNamesList();
             } catch (Exception e) {

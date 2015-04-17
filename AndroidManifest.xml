@@ -12,7 +12,8 @@
 
     <uses-permission android:name="org.simalliance.openmobileapi.SMARTCARD"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    
+    <uses-permission android:name="org.simalliance.openmobileapi.BIND_TERMINAL"/>
+
     <application android:label="SmartcardService">
         
         <uses-library android:name="org.simalliance.openmobileapi" android:required="true" />

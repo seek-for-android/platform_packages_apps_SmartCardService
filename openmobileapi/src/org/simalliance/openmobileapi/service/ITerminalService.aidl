@@ -33,6 +33,7 @@ interface ITerminalService {
      * @return the name of the type of Terminal.
      */
     String getType();
+
     /**
      * Implementation of the MANAGE CHANNEL open and SELECT commands.
      *
@@ -94,9 +95,9 @@ interface ITerminalService {
     byte[] simIOExchange(in int fileID, in String filePath, in byte[] cmd, out SmartcardError error);
 
     /**
-     * GetSEChangeAction of the terminal.
+     * Gets the Intent Action that is broadcasted when the SE state changes.
      *
-     * @return the action when SE receive any change.
+     * @return the Intent Action that is broadcasted when the SE state changes.
      */
-    String getSEChangeAction();
+    String getSeStateChangedAction();
 }

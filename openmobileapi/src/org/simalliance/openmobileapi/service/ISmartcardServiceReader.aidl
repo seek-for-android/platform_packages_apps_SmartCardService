@@ -24,23 +24,12 @@ import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
 import org.simalliance.openmobileapi.service.SmartcardError;
 
 interface ISmartcardServiceReader {
-	/**
-     * Return the user-friendly name of this reader.
-     * <ul>
-	 * <li>If this reader is a SIM reader, then its name must start with the "SIM" prefix.</li>
-	 * <li>If the reader is a SD or micro SD reader, then its name must start with the "SD" prefix</li>
-	 * <li>If the reader is a embedded SE reader, then its name must start with the "eSE" prefix</li>
-	 * <ul>
-     * 
-     * @return name of this Reader
-     */
-    String getName(out SmartcardError error);
 
     /**
      * Returns true if a card is present in the specified reader.
      * Returns false if a card is not present in the specified reader.
      */
-    boolean isSecureElementPresent(out SmartcardError error);
+    boolean isSecureElementPresent();
 
 
     /**

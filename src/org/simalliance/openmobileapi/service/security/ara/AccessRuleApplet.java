@@ -20,10 +20,10 @@ package org.simalliance.openmobileapi.service.security.ara;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.security.AccessControlException;
 
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.Terminal;
+import org.simalliance.openmobileapi.service.Util;
 import org.simalliance.openmobileapi.service.security.CommandApdu;
 import org.simalliance.openmobileapi.service.security.ResponseApdu;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.BerTlv;
@@ -55,169 +55,191 @@ public class AccessRuleApplet {
         mChannel = channel;
     }
 
-    public byte[] readSpecificAccessRule( byte[] aid_ref_do ) throws AccessControlException {
+    public byte[] readSpecificAccessRule( byte[] aid_ref_do ) throws SecurityException {
 
-    	if( aid_ref_do == null ){
-			throw new AccessControlException("GET DATA (specific): Reference data object must not be null.");
-    	}
-    	
-    	ByteArrayOutputStream stream = new ByteArrayOutputStream();
-    	int overallLen = 0;
-    	
-    	// send GET DATA (specific)
-    	CommandApdu apdu = (CommandApdu) mGetSpecific.clone();
+        if( aid_ref_do == null ){
+            throw new SecurityException("GET DATA (specific): Reference data object must not be null.");
+        }
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        int overallLen;
+
+        // send GET DATA (specific)
+        CommandApdu apdu = mGetSpecific.clone();
         apdu.setData(aid_ref_do);
-        ResponseApdu response = send(apdu);
-        
+        ResponseApdu response;
+        try {
+            response = send(apdu);
+        } catch (Exception e) {
+            throw new SecurityException("Error sending APDU");
+        }
+
         // OK
         if( response.isStatus( 0x9000 ) ) {
-        	// check if more data has to be fetched
-        	BerTlv tempTlv = null;
-        	try {
-				tempTlv = BerTlv.decode(response.getData(), 0, false);
-			} catch (ParserException e) {
-				throw new AccessControlException("GET DATA (specific) not successfull. Tlv encoding wrong.");
-			}
-			
-			// the first data block contain the length of the TLV + Tag bytes + length bytes.
-			overallLen = tempTlv.getValueLength() + tempTlv.getValueIndex();
-			try {
-				stream.write(response.getData());
-			} catch (IOException e) {
-				throw new AccessControlException("GET DATA (specific) IO problem. " + e.getMessage() );
-			}
+            // check if more data has to be fetched
+            BerTlv tempTlv;
+            try {
+                tempTlv = BerTlv.decode(response.getData(), 0, false);
+            } catch (ParserException e) {
+                throw new SecurityException("GET DATA (specific) not successfull. Tlv encoding wrong.");
+            }
 
-			int le;
-			// send subsequent GET DATA (next) commands
-			while( stream.size() < overallLen ){
-				le = overallLen - stream.size();
-				if( le > _MAX_LEN ){
-					le = _MAX_LEN;
-				}
-		    	// send GET DATA (next)
-		    	apdu = (CommandApdu) mGetNext.clone();
-		        apdu.setLe(le);
-		        response = send(apdu);
-				
-		        // OK
-		        if( response.isStatus( 0x9000 ) ){
-					try {
-						stream.write(response.getData());
-					} catch (IOException e) {
-						throw new AccessControlException("GET DATA (next) IO problem. " + e.getMessage() );
-					}
-		        } else {
-		        	throw new AccessControlException( "GET DATA (next) not successfull, . SW1SW2=" + response.getSW1SW2()); 
-		        }
-			}
+            // the first data block contain the length of the TLV + Tag bytes + length bytes.
+            overallLen = tempTlv.getValueLength() + tempTlv.getValueIndex();
+            try {
+                stream.write(response.getData());
+            } catch (IOException e) {
+                throw new SecurityException("GET DATA (specific) IO problem. " + e.getMessage() );
+            }
 
-        	return stream.toByteArray();
-        	// referenced data not found
+            int le;
+            // send subsequent GET DATA (next) commands
+            while( stream.size() < overallLen ){
+                le = overallLen - stream.size();
+                if( le > _MAX_LEN ){
+                    le = _MAX_LEN;
+                }
+                // send GET DATA (next)
+                apdu = mGetNext.clone();
+                apdu.setLe(le);
+                try {
+                    response = send(apdu);
+                } catch (Exception e) {
+                    throw new SecurityException("Error sending APDU");
+                }
+
+                // OK
+                if( response.isStatus( 0x9000 ) ){
+                    try {
+                        stream.write(response.getData());
+                    } catch (IOException e) {
+                        throw new SecurityException("GET DATA (next) IO problem. " + e.getMessage() );
+                    }
+                } else {
+                    throw new SecurityException( "GET DATA (next) not successfull, . SW1SW2=" + response.getSW1SW2());
+                }
+            }
+
+            return stream.toByteArray();
+            // referenced data not found
         } else if( response.isStatus( 0x6A88 )){
-        	return null;
+            return null;
         } else {
-        	throw new AccessControlException("GET DATA (specific) not successfull. SW1SW2=" + response.getSW1SW2());
+            throw new SecurityException("GET DATA (specific) not successfull. SW1SW2=" + response.getSW1SW2());
         }
     }
 
-    public byte[] readAllAccessRules() throws AccessControlException {
-    	
-    	ByteArrayOutputStream stream = new ByteArrayOutputStream();
-    	int overallLen = 0;
-    	
-    	// send GET DATA (specific)
-    	CommandApdu apdu = (CommandApdu) mGetAll.clone();
-        ResponseApdu response = send(apdu);
-        
+    public byte[] readAllAccessRules() throws SecurityException {
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        int overallLen;
+
+        // send GET DATA (specific)
+        CommandApdu apdu = mGetAll.clone();
+        ResponseApdu response;
+        try {
+            response = send(apdu);
+        } catch (Exception e) {
+            throw new SecurityException("Error sending APDU");
+        }
+
         // OK
         if( response.isStatus( 0x9000 ) ){
-        	
-        	// check if more data has to be fetched
-        	BerTlv tempTlv = null;
-        	try {
-				tempTlv = BerTlv.decode(response.getData(), 0, false);
-			} catch (ParserException e) {
-				throw new AccessControlException("GET DATA (all) not successfull. Tlv encoding wrong.");
-			}
-			
-			// the first data block contain the length of the TLV + Tag bytes + length bytes.
-			overallLen = tempTlv.getValueLength() + tempTlv.getValueIndex();
 
-			
-			try {
-				stream.write(response.getData());
-			} catch (IOException e) {
-				throw new AccessControlException("GET DATA (all) IO problem. " + e.getMessage() );
-			}
+            // check if more data has to be fetched
+            BerTlv tempTlv;
+            try {
+                tempTlv = BerTlv.decode(response.getData(), 0, false);
+            } catch (ParserException e) {
+                throw new SecurityException("GET DATA (all) not successfull. Tlv encoding wrong.");
+            }
 
-			int le;
-			// send subsequent GET DATA (next) commands
-			while( stream.size() < overallLen ){
-				le = overallLen - stream.size();
+            // the first data block contain the length of the TLV + Tag bytes + length bytes.
+            overallLen = tempTlv.getValueLength() + tempTlv.getValueIndex();
 
-				if( le > _MAX_LEN ){
-					le = _MAX_LEN;
-				}
-		    	// send GET DATA (next)
-		    	apdu = (CommandApdu) mGetNext.clone();
-		        apdu.setLe(le);
 
-		        response = send(apdu);
-		        // OK
-		        if( response.isStatus( 0x9000 ) ) {
-					try {
-						stream.write(response.getData());
-					} catch (IOException e) {
-						throw new AccessControlException("GET DATA (next) IO problem. " + e.getMessage() );
-					}
-		        } else {
-		        	throw new AccessControlException( "GET DATA (next) not successfull, . SW1SW2=" + response.getSW1SW2()); 
-		        }
-			}
+            try {
+                stream.write(response.getData());
+            } catch (IOException e) {
+                throw new SecurityException("GET DATA (all) IO problem. " + e.getMessage() );
+            }
 
-        	return stream.toByteArray();
-        	// referenced data not found
+            int le;
+            // send subsequent GET DATA (next) commands
+            while( stream.size() < overallLen ){
+                le = overallLen - stream.size();
+
+                if( le > _MAX_LEN ){
+                    le = _MAX_LEN;
+                }
+                // send GET DATA (next)
+                apdu = mGetNext.clone();
+                apdu.setLe(le);
+
+                try {
+                    response = send(apdu);
+                } catch (Exception e) {
+                    throw new SecurityException("Error sending APDU");
+                }
+                // OK
+                if( response.isStatus( 0x9000 ) ) {
+                    try {
+                        stream.write(response.getData());
+                    } catch (IOException e) {
+                        throw new SecurityException("GET DATA (next) IO problem. " + e.getMessage() );
+                    }
+                } else {
+                    throw new SecurityException( "GET DATA (next) not successfull, . SW1SW2=" + response.getSW1SW2());
+                }
+            }
+
+            return stream.toByteArray();
+            // referenced data not found
         } else if( response.isStatus( 0x6A88 )){
-        	return null;
+            return null;
         } else {
-        	throw new AccessControlException("GET DATA (all) not successfull. SW1SW2=" + response.getSW1SW2());
+            throw new SecurityException("GET DATA (all) not successfull. SW1SW2=" + response.getSW1SW2());
         }
     }
 
-    public byte[] readRefreshTag() throws AccessControlException {
+    public byte[] readRefreshTag() throws SecurityException {
 
-    	// send GET DATA (specific)
-    	CommandApdu apdu = (CommandApdu) mGetRefreshTag.clone();
-        ResponseApdu response = send(apdu);
-        
+        // send GET DATA (specific)
+        CommandApdu apdu = mGetRefreshTag.clone();
+        ResponseApdu response;
+        try {
+            response = send(apdu);
+        } catch (Exception e) {
+            throw new SecurityException("Error sending APDU");
+        }
+
         // OK
         if( response.isStatus( 0x9000 ) ){
-        	
-        	// check if more data has to be fetched
-        	BerTlv tempTlv = null;
-        	Response_RefreshTag_DO refreshDo;
-        	try {
-				tempTlv = Response_DO_Factory.createDO(response.getData());
-				if( tempTlv instanceof Response_RefreshTag_DO ) {
-					refreshDo = (Response_RefreshTag_DO)tempTlv;
-					return refreshDo.getRefreshTagArray();
-				} else {
-					throw new AccessControlException("GET REFRESH TAG returned invalid Tlv.");
-				}
-			} catch (ParserException e) {
-				throw new AccessControlException("GET REFRESH TAG not successfull. Tlv encoding wrong.");
-			}
+
+            // check if more data has to be fetched
+            BerTlv tempTlv;
+            Response_RefreshTag_DO refreshDo;
+            try {
+                tempTlv = Response_DO_Factory.createDO(response.getData());
+                if( tempTlv instanceof Response_RefreshTag_DO ) {
+                    refreshDo = (Response_RefreshTag_DO)tempTlv;
+                    return refreshDo.getRefreshTagArray();
+                } else {
+                    throw new SecurityException("GET REFRESH TAG returned invalid Tlv.");
+                }
+            } catch (ParserException e) {
+                throw new SecurityException("GET REFRESH TAG not successfull. Tlv encoding wrong.");
+            }
         } 
-        throw new AccessControlException("GET REFRESH TAG not successfull.");			
+        throw new SecurityException("GET REFRESH TAG not successfull.");
     }
 
-    private ResponseApdu send(CommandApdu cmdApdu) {
+    private ResponseApdu send(CommandApdu cmdApdu) throws Exception {
         byte[] cmd = cmdApdu.toBytes();
         mTerminal.getAccessControlEnforcer()
                 .checkCommand(mChannel, cmd);
-        cmd[0] = mChannel.setChannelToClassByte(cmd[0], mChannel.getChannelNumber());
+        cmd[0] = Util.setChannelToClassByte(cmd[0], mChannel.getChannelNumber());
         byte[] response = mTerminal.transmit(cmd, 2, 0, 0, null);
-        ResponseApdu resApdu = new ResponseApdu(response);
-        return resApdu;
+        return new ResponseApdu(response);
     }
 }

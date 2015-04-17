@@ -20,7 +20,6 @@
 package org.simalliance.openmobileapi;
 
 import java.io.IOException;
-import java.util.MissingResourceException;
 import java.util.NoSuchElementException;
 
 import org.simalliance.openmobileapi.service.ISmartcardServiceChannel;
@@ -28,6 +27,7 @@ import org.simalliance.openmobileapi.service.ISmartcardServiceSession;
 import org.simalliance.openmobileapi.service.SmartcardError;
 
 import android.os.RemoteException;
+import android.util.Log;
 
 /**
  * Instances of this class represent a connection session to one of the secure
@@ -76,8 +76,6 @@ public class Session {
             return mSession.getAtr();
         } catch (RemoteException e) {
             throw new IllegalStateException(e.getMessage());
-        } catch (Exception e) {
-            return null;
         }
     }
 
@@ -91,13 +89,15 @@ public class Session {
         }
         if (mSession != null) {
             synchronized (mLock) {
-                SmartcardError error = new SmartcardError();
                 try {
+                    SmartcardError error = new SmartcardError();
                     mSession.close(error);
-                } catch (RemoteException e) {
-                    throw new IllegalStateException(e.getMessage());
+                    if (error.isSet()) {
+                        error.throwException();
+                    }
+                } catch (Exception e) {
+                    Log.e(getClass().getSimpleName(), "Error closing session", e);
                 }
-                SEService.checkForException(error);
             }
         }
     }
@@ -109,10 +109,7 @@ public class Session {
      */
     public boolean isClosed() {
         try {
-            if (mSession == null) {
-                return true;
-            }
-            return mSession.isClosed();
+            return mSession == null || mSession.isClosed();
         } catch (RemoteException e) {
             throw new IllegalStateException(e.getMessage());
         }
@@ -131,13 +128,15 @@ public class Session {
 
         if (mSession != null) {
             synchronized (mLock) {
-                SmartcardError error = new SmartcardError();
                 try {
+                    SmartcardError error = new SmartcardError();
                     mSession.closeChannels(error);
-                } catch (RemoteException e) {
-                    throw new IllegalStateException(e.getMessage());
+                    if (error.isSet()) {
+                        error.throwException();
+                    }
+                } catch (Exception e) {
+                    Log.e(getClass().getSimpleName(), "Error closing channels", e);
                 }
-                SEService.checkForException(error);
             }
         }
     }
@@ -197,42 +196,22 @@ public class Session {
         }
 
         synchronized (mLock) {
-            ISmartcardServiceChannel channel;
-            SmartcardError error = new SmartcardError();
             try {
-                channel = mSession.openBasicChannelAid(
+                SmartcardError error = new SmartcardError();
+                ISmartcardServiceChannel channel = mSession.openBasicChannel(
                         aid,
                         mReader.getSEService().getCallback(),
                         error);
-            } catch (RemoteException e) {
-                throw new IllegalStateException(e.getMessage());
-            } catch (Exception e) {
-                throw new IOException(e.getMessage());
-            }
-            if (isBasicChannelInUse(error)) {
-                return null;
-            }
-            if (aid == null || aid.length == 0) {
-                if (!isDefaultApplicationSelected(error)) {
+                if (error.isSet()) {
+                    error.throwException();
+                }
+                if (channel == null) {
                     return null;
                 }
+                return new Channel(this, channel);
+            } catch (RemoteException e) {
+                throw new IllegalStateException(e.getMessage());
             }
-            SEService.checkForException(error);
-            error.clear();
-            boolean b = channelCannotBeEstablished(error);
-            SEService.checkForException(error);
-            if (b) {
-                return null;
-            }
-            error.clear();
-            checkIfAppletAvailable(error);
-            SEService.checkForException(error);
-
-            if (channel == null) {
-                return null;
-            }
-
-            return new Channel(this, channel);
         }
     }
 
@@ -276,102 +255,24 @@ public class Session {
         if (getReader() == null) {
             throw new IllegalStateException("reader must not be null");
         }
+
         synchronized (mLock) {
-            SmartcardError error = new SmartcardError();
-            ISmartcardServiceChannel channel;
             try {
-                channel = mSession.openLogicalChannel(
+                SmartcardError error = new SmartcardError();
+                ISmartcardServiceChannel channel = mSession.openLogicalChannel(
                         aid,
                         mReader.getSEService().getCallback(),
                         error);
+                if (error.isSet()) {
+                    error.throwException();
+                }
+                if (channel == null) {
+                    return null;
+                }
+                return new Channel(this, channel);
             } catch (RemoteException e) {
                 throw new IllegalStateException(e.getMessage());
-            } catch (Exception e) {
-                throw new IOException(e.getMessage());
-            }
-            SEService.checkForException(error);
-            error.clear();
-            boolean b = channelCannotBeEstablished(error);
-            SEService.checkForException(error);
-            if (b) {
-                return null;
-            }
-            error.clear();
-            checkIfAppletAvailable(error);
-            SEService.checkForException(error);
-
-            if (channel == null) {
-                return null;
-            }
-
-            return new Channel(this, channel);
-        }
-    }
-
-    // ******************************************************************
-    // package private methods
-    // ******************************************************************
-
-    private boolean isDefaultApplicationSelected(SmartcardError error) {
-        Exception exp = error.createException();
-        if (exp != null) {
-            String msg = exp.getMessage();
-            if (msg != null) {
-                if (msg.contains("default application is not selected")) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    private boolean isBasicChannelInUse(SmartcardError error) {
-        Exception exp = error.createException();
-        if (exp != null) {
-            String msg = exp.getMessage();
-            if (msg != null) {
-                if (msg.contains("basic channel in use")) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean channelCannotBeEstablished(SmartcardError error) {
-        Exception exp = error.createException();
-        if (exp != null) {
-            if (exp instanceof MissingResourceException) {
-                return true;
-            }
-            String msg = exp.getMessage();
-            if (msg != null) {
-                if (msg.contains("channel in use")) {
-                    return true;
-                }
-                if (msg.contains("open channel failed")) {
-                    return true;
-                }
-                if (msg.contains("out of channels")) {
-                    return true;
-                }
-                if (msg.contains("MANAGE CHANNEL")) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private void checkIfAppletAvailable(SmartcardError error)
-            throws NoSuchElementException {
-        Exception exp = error.createException();
-        if (exp != null) {
-            if (exp instanceof NoSuchElementException) {
-                throw new NoSuchElementException(
-                        "Applet with the defined aid does not exist in the SE");
             }
         }
     }
-
 }

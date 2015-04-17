@@ -81,20 +81,16 @@ public class Reader {
         }
 
         synchronized (mLock) {
-            SmartcardError error = new SmartcardError();
-            ISmartcardServiceSession session;
             try {
-                session = mReader.openSession(error);
+                SmartcardError error = new SmartcardError();
+                ISmartcardServiceSession session = mReader.openSession(error);
+                if (error.isSet()) {
+                    error.throwException();
+                }
+                return new Session(session, this);
             } catch (RemoteException e) {
                 throw new IOException( e.getMessage() );
             }
-            SEService.checkForException(error);
-
-            if( session == null ){
-                throw new IOException( "service session is null." );
-            }
-
-            return new Session(session, this);
         }
     }
 
@@ -108,15 +104,11 @@ public class Reader {
             throw new IllegalStateException("service is not connected");
         }
 
-        SmartcardError error = new SmartcardError();
-        boolean flag;
         try {
-            flag = mReader.isSecureElementPresent(error);
+            return mReader.isSecureElementPresent();
         } catch (RemoteException e) {
             throw new IllegalStateException(e.getMessage());
         }
-        SEService.checkForException(error);
-        return flag; 
     }
 
     /**
@@ -136,18 +128,13 @@ public class Reader {
         if (mService == null || !mService.isConnected()) {
             throw new IllegalStateException("service is not connected");
         }
-		synchronized (mLock) {
+        synchronized (mLock) {
             SmartcardError error = new SmartcardError();
             try {
                 mReader.closeSessions(error);
             } catch (RemoteException e) {
                 throw new IllegalStateException(e.getMessage());
             }
-            SEService.checkForException(error);
         }
     }
-
-    // ******************************************************************
-    // package private methods
-    // ******************************************************************
 }

@@ -5,7 +5,6 @@ import android.os.Binder;
 import android.os.RemoteException;
 import android.util.Log;
 
-import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 
 import java.io.PrintWriter;
@@ -21,76 +20,58 @@ import java.util.Random;
 public class Session {
 
     private final Terminal mReader;
-    /** List of open channels in use of by this client. */
-    private final Map<Long, Channel> mChannels = new HashMap<Long, Channel>();
-
-    public static final String _TAG = "SmartcardServiceSession";
-
+    private Context mContext;
+    private boolean mIsClosed;
+    /**
+     * List of open channels in use by this client.
+     */
+    private final Map<Long, Channel> mChannels = new HashMap<>();
+    /**
+     * Random number generator used for handle creation.
+     */
+    private Random mRandom = new Random();
     private final Object mLock = new Object();
 
-    private boolean mIsClosed;
-
-    /** Random number generator used for handle creation. */
-    static Random mRandom = new Random();
-
-    private byte[] mAtr;
-
-    private Context mContext;
     public Session(Terminal reader, Context context) {
         mReader = reader;
-        mAtr = mReader.getAtr();
         mIsClosed = false;
         mContext = context;
     }
 
-
-    void setClosed() {
-        mIsClosed = true;
+    public SmartcardServiceSession getBinder() {
+        return new SmartcardServiceSession();
     }
 
-    /**
-     * Closes the specified channel. <br>
-     * After calling this method the session can not be used for the
-     * communication with the secure element any more.
-     *
-     * @param channel the channel handle obtained by an open channel
-     *        command.
-     */
-    void removeChannel(Channel channel) {
-        if (channel == null) {
-            return;
-        }
-        mChannels.remove(channel);
-    }
-
-    public ISmartcardServiceReader getReader() throws RemoteException {
-        return mReader.new SmartcardServiceReader();
+    public Terminal getReader() {
+        return mReader;
     }
 
     public byte[] getAtr() throws RemoteException {
-        return mAtr;
+        return mReader.getAtr();
     }
 
-    public void close(SmartcardError error) {
-        Util.clearError(error);
-        if (mReader == null) {
+    public synchronized void close() {
+        if (isClosed()) {
             return;
         }
-        mReader.closeSession(this, error);
+        closeChannels();
+        mIsClosed = true;
+        mReader.sessionClosed(this);
     }
 
-    public void closeChannels(SmartcardError error) {
+    public void closeChannels() {
         synchronized (mLock) {
             Collection<Channel> col = mChannels.values();
             Channel[] channelList = col.toArray(new Channel[col.size()]);
             for (Channel channel : channelList) {
                 if (channel != null && !channel.isClosed()) {
                     try {
-                        channel.close(error);
-                        mIsClosed = true;
+                        channel.close();
+                        removeChannel(channel);
                     } catch (Exception ignore) {
-                        Log.e(_TAG, "ServiceSession channel - close"
-                                + " Exception " + ignore.getMessage());
+                        Log.e(SmartcardService.LOG_TAG,
+                                "ServiceSession channel - close Exception: " + ignore.getMessage(),
+                                ignore);
                     }
                 }
             }
@@ -99,107 +80,142 @@ public class Session {
     }
 
     public boolean isClosed() {
-
         return mIsClosed;
     }
 
-    public ISmartcardServiceChannel openBasicChannel(byte[] aid,
-                                                        ISmartcardServiceCallback callback, SmartcardError error)
-            throws RemoteException {
-        Util.clearError(error);
+    public ISmartcardServiceChannel openBasicChannel(
+            byte[] aid,
+            ISmartcardServiceCallback callback) throws Exception {
+
         if (isClosed()) {
-            Util.setError(error, IllegalStateException.class,
-                    "session is closed");
-            return null;
+            throw new IllegalStateException("Session is closed");
         }
         if (callback == null) {
-            Util.setError(error, IllegalStateException.class,
-                    "callback must not be null");
-            return null;
+            throw new IllegalStateException("Callback must not be null");
         }
         if (mReader == null) {
-            Util.setError(error, IllegalStateException.class,
-                    "reader must not be null");
+            throw new IllegalStateException("Reader must not be null");
+        }
+
+        boolean noAid = false;
+        if (aid == null || aid.length == 0) {
+            aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
+            noAid = true;
+        }
+
+        if (aid.length < 5 || aid.length > 16) {
+            throw new IllegalArgumentException("AID out of range");
+        }
+
+        String packageName = Util.getPackageNameFromCallingUid(
+                mContext,
+                Binder.getCallingUid());
+        Log.v(SmartcardService.LOG_TAG, "Enable access control on basic channel for "
+                + packageName);
+        ChannelAccess channelAccess = mReader.
+                setUpChannelAccess(mContext.getPackageManager(), aid, packageName);
+        Log.v(SmartcardService.LOG_TAG, "Access control successfully enabled.");
+
+        channelAccess.setCallingPid(Binder.getCallingPid());
+
+        Log.v(SmartcardService.LOG_TAG, "OpenBasicChannel(AID)");
+        if (mReader.getBasicChannel() != null) {
+            return null;
+        }
+        Channel channel;
+        if (noAid) {
+            if (!mReader.getDefaultApplicationSelectedOnBasicChannel()) {
+                throw new IllegalStateException("default application is not selected");
+            }
+            channel = new Channel(this, 0, null, callback);
+            channel.hasSelectedAid(false, null);
+
+        } else {
+            byte[] selectCommand = new byte[aid.length + 6];
+            selectCommand[0] = 0x00;
+            selectCommand[1] = (byte) 0xA4;
+            selectCommand[2] = 0x04;
+            selectCommand[3] = 0x00;
+            selectCommand[4] = (byte) aid.length;
+            System.arraycopy(aid, 0, selectCommand, 5, aid.length);
+            byte[] selectResponse;
+            try {
+                // TODO: also accept 62XX and 63XX as valid SW
+                selectResponse = transmit(
+                        selectCommand, 2, 0x9000, 0xFFFF, "SELECT ON BASIC CHANNEL");
+            } catch (Exception exp) {
+                throw new NoSuchElementException(exp.getMessage());
+            }
+
+            channel = new Channel(this, 0, selectResponse, callback);
+            channel.hasSelectedAid(true, aid);
+        }
+
+        channel.setChannelAccess(channelAccess);
+
+        Log.v(SmartcardService.LOG_TAG, "Open basic channel success. Channel: " + channel.getChannelNumber());
+
+        registerChannel(channel);
+        return channel.getBinder();
+    }
+
+    public ISmartcardServiceChannel openLogicalChannel(
+            byte[] aid,
+            ISmartcardServiceCallback callback) throws Exception {
+
+        if (isClosed()) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (callback == null) {
+            throw new IllegalStateException("Callback must not be null");
+        }
+        if (mReader == null) {
+            throw new IllegalStateException("Reader must not be null");
+        }
+
+        boolean noAid = false;
+        if (aid == null || aid.length == 0) {
+            aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
+            noAid = true;
+        }
+
+        if (aid.length < 5 || aid.length > 16) {
+            throw new IllegalArgumentException("AID out of range");
+        }
+
+        String packageName = Util.getPackageNameFromCallingUid(
+                mContext,
+                Binder.getCallingUid());
+        Log.v(SmartcardService.LOG_TAG, "Enable access control on logical channel for "
+                + packageName);
+        ChannelAccess channelAccess = mReader.
+                setUpChannelAccess(mContext.getPackageManager(), aid, packageName);
+        Log.v(SmartcardService.LOG_TAG, "Access control successfully enabled.");
+        channelAccess.setCallingPid(Binder.getCallingPid());
+
+
+        Log.v(SmartcardService.LOG_TAG, "OpenLogicalChannel");
+        if (noAid) {
+            aid = null;
+        }
+
+        OpenLogicalChannelResponse rsp;
+        synchronized (this) {
+            rsp = mReader.internalOpenLogicalChannel(aid);
+        }
+
+        if (rsp == null) {
             return null;
         }
 
-        try {
-            boolean noAid = false;
-            if (aid == null || aid.length == 0) {
-                aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
-                noAid = true;
-            }
+        Channel channel = new Channel(this, rsp.getChannel(), rsp.getSelectResponse(), callback);
+        channel.hasSelectedAid(true, aid);
+        channel.setChannelAccess(channelAccess);
 
-            if (aid.length < 5 || aid.length > 16) {
-                Util.setError(error, IllegalArgumentException.class,
-                        "AID out of range");
-                return null;
-            }
+        Log.v(SmartcardService.LOG_TAG, "Open logical channel successfull. Channel: " + channel.getChannelNumber());
 
-
-            String packageName = Util.getPackageNameFromCallingUid(
-                    mContext,
-                    Binder.getCallingUid());
-            Log.v(_TAG, "Enable access control on basic channel for "
-                    + packageName);
-            ChannelAccess channelAccess = mReader.
-                    setUpChannelAccess(mContext.getPackageManager(), aid,
-                            packageName, callback);
-            Log.v(_TAG, "Access control successfully enabled.");
-
-            channelAccess.setCallingPid(Binder.getCallingPid());
-
-
-
-            Log.v(_TAG, "OpenBasicChannel(AID)");
-            if (mReader.getBasicChannel() != null) {
-                throw new IllegalStateException("basic channel in use");
-            }
-            Channel channel;
-            if (noAid) {
-                if (!mReader.getDefaultApplicationSelectedOnBasicChannel()) {
-                    throw new IllegalStateException("default application is not selected");
-                }
-                channel = new Channel(this, 0, null, callback);
-                channel.hasSelectedAid(false, null);
-
-            } else {
-                byte[] selectResponse = null;
-                byte[] selectCommand = new byte[aid.length + 6];
-                selectCommand[0] = 0x00;
-                selectCommand[1] = (byte) 0xA4;
-                selectCommand[2] = 0x04;
-                selectCommand[3] = 0x00;
-                selectCommand[4] = (byte) aid.length;
-                System.arraycopy(aid, 0, selectCommand, 5, aid.length);
-                try {
-                    // TODO: also accept 62XX and 63XX as valid SW
-                    selectResponse = transmit(
-                            selectCommand, 2, 0x9000, 0xFFFF, "SELECT ON BASIC CHANNEL");
-                } catch (Exception exp) {
-                    throw new NoSuchElementException(exp.getMessage());
-                }
-
-                channel = new Channel(this, 0, selectResponse, callback);
-                channel.hasSelectedAid(true, aid);
-            }
-
-            channel.setChannelAccess(channelAccess);
-
-            Log.v(_TAG,
-                    "Open basic channel success. Channel: "
-                            + channel.getChannelNumber());
-
-            Channel.SmartcardServiceChannel basicChannel
-                    = channel.new SmartcardServiceChannel(this);
-            registerChannel(channel);
-            return basicChannel;
-
-        } catch (Exception e) {
-            Util.setError(error, e);
-            Log.v(_TAG, "OpenBasicChannel Exception: " + e.getMessage());
-            return null;
-        }
+        registerChannel(channel);
+        return channel.getBinder();
     }
 
     /**
@@ -224,86 +240,21 @@ public class Session {
             int minRspLength,
             int swExpected,
             int swMask,
-            String commandName) {
+            String commandName) throws Exception {
         return mReader.transmit(cmd, minRspLength, swExpected, swMask, commandName);
     }
-    public ISmartcardServiceChannel openLogicalChannel(byte[] aid,
-                                                       ISmartcardServiceCallback callback, SmartcardError error)
-            throws RemoteException {
-        Util.clearError(error);
 
-        if (isClosed()) {
-            Util.setError(error, IllegalStateException.class,
-                    "session is closed");
-            return null;
-        }
-
-        if (callback == null) {
-            Util.setError(error, IllegalStateException.class,
-                    "callback must not be null");
-            return null;
-        }
-        if (mReader == null) {
-            Util.setError(error, IllegalStateException.class,
-                    "reader must not be null");
-            return null;
-        }
-
-        try {
-            boolean noAid = false;
-            if (aid == null || aid.length == 0) {
-                aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
-                noAid = true;
-            }
-
-            if (aid.length < 5 || aid.length > 16) {
-                Util.setError(error, IllegalArgumentException.class,
-                        "AID out of range");
-                return null;
-            }
-
-
-            String packageName = Util.getPackageNameFromCallingUid(
-                    mContext,
-                    Binder.getCallingUid());
-            Log.v(_TAG, "Enable access control on logical channel for "
-                    + packageName);
-            ChannelAccess channelAccess = mReader.
-                    setUpChannelAccess(mContext.getPackageManager(), aid,
-                            packageName, callback);
-            Log.v(_TAG, "Access control successfully enabled.");
-            channelAccess.setCallingPid(Binder.getCallingPid());
-
-
-            Log.v(_TAG, "OpenLogicalChannel");
-            Channel channel;
-            OpenLogicalChannelResponse rsp;
-            if (noAid) {
-                aid = null;
-            }
-            synchronized (this) {
-                rsp = mReader.internalOpenLogicalChannel(aid);
-                channel = new Channel(this, rsp.getChannel(), rsp.getSelectResponse(), callback);
-                channel.hasSelectedAid(true, aid);
-            }
-
-            channel.setChannelAccess(channelAccess);
-
-            Log.v(_TAG, "Open logical channel successfull. Channel: "
-                    + channel.getChannelNumber());
-            Channel.SmartcardServiceChannel logicalChannel
-                    = channel.new SmartcardServiceChannel(this);
-            registerChannel(channel);
-            return logicalChannel;
-        } catch (Exception e) {
-            Util.setError(error, e);
-            Log.v(_TAG, "OpenLogicalChannel Exception: " + e.getMessage());
-            return null;
-        }
+    public void closeChannel(int channelNumber) throws Exception {
+        mReader.internalCloseLogicalChannel(channelNumber);
     }
 
-    public void closeChannel(int channelNumber) {
-        mReader.internalCloseLogicalChannel(channelNumber);
+    public Channel getBasicChannel() {
+        for (Channel channel : mChannels.values()) {
+            if (channel.getChannelNumber() == 0) {
+                return channel;
+            }
+        }
+        return null;
     }
 
     /**
@@ -323,21 +274,19 @@ public class Session {
         return hChannel;
     }
 
-    public Channel getBasicChannel() {
-        for (Channel channel : mChannels.values()) {
-            if (channel.getChannelNumber() == 0) {
-                return channel;
-            }
+    /**
+     * Closes the specified channel. <br>
+     * After calling this method the session can not be used for the
+     * communication with the secure element any more.
+     *
+     * @param channel the channel handle obtained by an open channel
+     *        command.
+     */
+    private void removeChannel(Channel channel) {
+        if (channel == null) {
+            return;
         }
-        return null;
-    }
-
-    public AccessControlEnforcer getAccessControlEnforcer() {
-        return mReader.getAccessControlEnforcer();
-    }
-
-    public String getReaderName() {
-        return mReader.getName();
+        mChannels.remove(channel.getHandle());
     }
 
     public void dump(PrintWriter writer, String prefix) {
@@ -353,63 +302,64 @@ public class Session {
         }
     }
 
-    final class SmartcardServiceSession extends ISmartcardServiceSession.Stub {
-        @Override
-        public ISmartcardServiceReader getReader() throws RemoteException {
-            return mReader.new SmartcardServiceReader();
-        }
+    private class SmartcardServiceSession extends ISmartcardServiceSession.Stub {
 
         @Override
         public byte[] getAtr() throws RemoteException {
-            return mAtr;
+            return Session.this.getAtr();
         }
 
         @Override
         public void close(SmartcardError error) throws RemoteException {
-            Util.clearError(error);
-            Session.this.close(error);
-            if(error.createException() != null) {
-                error.throwException();
+            try {
+                Session.this.close();
+            } catch (Exception e) {
+                Log.e(SmartcardService.LOG_TAG, "Error during close()", e);
+                error.set(e);
             }
         }
 
         @Override
         public void closeChannels(SmartcardError error) throws RemoteException {
-            Util.clearError(error);
-            Session.this.closeChannels(error);
-            if(error.createException() != null) {
-                error.throwException();
+            try {
+                Session.this.closeChannels();
+            } catch (Exception e) {
+                Log.e(SmartcardService.LOG_TAG, "Error during closeChannel()", e);
+                error.set(e);
             }
         }
 
         @Override
         public boolean isClosed() throws RemoteException {
-
-            return mIsClosed;
+            return Session.this.isClosed();
         }
 
         @Override
         public ISmartcardServiceChannel openBasicChannel(
-                ISmartcardServiceCallback callback, SmartcardError error)
-                throws RemoteException {
-            Util.clearError(error);
-            return Session.this.openBasicChannel(null, callback, error);
+                byte[] aid,
+                ISmartcardServiceCallback callback,
+                SmartcardError error) throws RemoteException {
+            try {
+                return Session.this.openBasicChannel(aid, callback);
+            } catch (Exception e) {
+                Log.e(SmartcardService.LOG_TAG, "Error during openBasicChannel()", e);
+                error.set(e);
+                return null;
+            }
         }
 
         @Override
-        public ISmartcardServiceChannel openBasicChannelAid(byte[] aid,
-                                                            ISmartcardServiceCallback callback, SmartcardError error)
-                throws RemoteException {
-            Util.clearError(error);
-            return Session.this.openBasicChannel(aid, callback, error);
-        }
-
-        @Override
-        public ISmartcardServiceChannel openLogicalChannel(byte[] aid,
-                                                           ISmartcardServiceCallback callback, SmartcardError error)
-                throws RemoteException {
-            Util.clearError(error);
-            return Session.this.openLogicalChannel(aid, callback, error);
+        public ISmartcardServiceChannel openLogicalChannel(
+                byte[] aid,
+                ISmartcardServiceCallback callback,
+                SmartcardError error) throws RemoteException {
+            try {
+                return Session.this.openLogicalChannel(aid, callback);
+            } catch (Exception e) {
+                Log.e(SmartcardService.LOG_TAG, "Error during openLogicalChannel()", e);
+                error.set(e);
+                return null;
+            }
         }
     }
 }

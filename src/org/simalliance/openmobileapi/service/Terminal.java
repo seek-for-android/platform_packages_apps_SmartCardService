@@ -35,7 +35,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.AccessControlException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 
@@ -51,8 +50,6 @@ import org.simalliance.openmobileapi.service.security.ChannelAccess;
  */
 public class Terminal {
 
-    private static final String _TAG = "Terminal";
-
     protected Context mContext;
 
     protected final String mName;
@@ -63,8 +60,7 @@ public class Terminal {
 
     protected ServiceConnection mTerminalConnection;
 
-    private final ArrayList<Session> mSessions
-            = new ArrayList<Session>();
+    private final ArrayList<Session> mSessions = new ArrayList<>();
 
     private final Object mLock = new Object();
 
@@ -75,7 +71,6 @@ public class Terminal {
 
     protected boolean mDefaultApplicationSelectedOnBasicChannel = true;
 
- 
     /**
      * For each Terminal there will be one AccessController object.
      */
@@ -105,6 +100,10 @@ public class Terminal {
                 Context.BIND_AUTO_CREATE);
     }
 
+    public SmartcardServiceReader getBinder() {
+        return new SmartcardServiceReader();
+    }
+
     private class InitialiseTask extends AsyncTask<Void, Void, Void> {
 
         @Override
@@ -127,35 +126,33 @@ public class Terminal {
         @Override
         protected void onPostExecute(Void result) {
             super.onPostExecute(result);
-            registerSEStateChangedEvent();
+            registerSeStateChangedEvent();
             mInitialiseTask = null;
         }
     }
 
-    public void registerSEStateChangedEvent() {
-        Log.v(_TAG, "register to SE state change event");
+    public void registerSeStateChangedEvent() {
+        Log.v(SmartcardService.LOG_TAG, "register to SE state change event");
+        String action;
         try {
-            IntentFilter intentFilter = new IntentFilter(
-                    mTerminalService.getSEChangeAction());
-            mSEReceiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    try {
-                        if (mTerminalService.getSEChangeAction().equals(intent
-                                .getAction())) {
-                            initializeAccessControl(
-                                    true);
-                        }
-                    }
-                    catch(RemoteException e) {
-                        e.printStackTrace();
-                    }
-                }
-            };
-            mContext.registerReceiver(mSEReceiver, intentFilter);
-        } catch(RemoteException e) {
-            e.printStackTrace();
+            action = mTerminalService.getSeStateChangedAction();
+        } catch (RemoteException ignore) {
+            Log.e(SmartcardService.LOG_TAG,
+                    "Could not get SE State Changed Action, not registering to event",
+                    ignore);
+            return;
         }
+        final String seStateChangedAction = action;
+        IntentFilter intentFilter = new IntentFilter(seStateChangedAction);
+        mSEReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getAction().equals(seStateChangedAction)) {
+                    initializeAccessControl(true);
+                }
+            }
+        };
+        mContext.registerReceiver(mSEReceiver, intentFilter);
     }
 
     /**
@@ -164,10 +161,9 @@ public class Terminal {
      *
      * @param reset
      */
-    public synchronized boolean initializeAccessControl(
-            boolean reset) {
+    public synchronized boolean initializeAccessControl(boolean reset) {
         boolean result = true;
-        Log.i(_TAG, "Initializing Access Control");
+        Log.i(SmartcardService.LOG_TAG, "Initializing Access Control");
 
         boolean isCardPresent;
         try {
@@ -178,19 +174,17 @@ public class Terminal {
         }
 
         if (isCardPresent) {
-            Log.i(_TAG,
-                    "Initializing Access Control for "
-                            + getName());
+            Log.i(SmartcardService.LOG_TAG, "Initializing Access Control for " + getName());
             if (reset) {
                 resetAccessControl();
             }
             if (mAccessControlEnforcer == null) {
                 mAccessControlEnforcer = new AccessControlEnforcer(this);
             }
-            result &= mAccessControlEnforcer.initialize(true, new ISmartcardServiceCallback.Stub(){});
+            result = mAccessControlEnforcer.initialize(true, new ISmartcardServiceCallback.Stub(){});
         } else {
-            Log.i(_TAG, "NOT initializing Access Control for "
-                    + getName() + " SE not present.");
+            Log.i(SmartcardService.LOG_TAG, "NOT initializing Access Control for " + getName()
+                    + ": SE not present.");
         }
 
         return result;
@@ -198,8 +192,9 @@ public class Terminal {
 
     public void onSmartcardServiceShutdown() {
         try {
-            closeSessions(new SmartcardError());
+            closeSessions();
         } catch (Exception ignore) {
+            Log.w(SmartcardService.LOG_TAG, "Error during closeSessions()", ignore);
         }
         // Cancel the inialization background task if still running
         if (mInitialiseTask != null) {
@@ -211,36 +206,33 @@ public class Terminal {
         mContext.unbindService(mTerminalConnection);
     }
 
+    public ISmartcardServiceSession openSession() throws Exception {
+        if (!isCardPresent()) {
+            throw new IOException("Secure Element is not presented.");
+        }
+
+        synchronized (mLock) {
+            Terminal.this.initializeAccessControl(false);
+            Session session = new Session(this, mContext);
+            mSessions.add(session);
+            return session.getBinder();
+        }
+    }
+
     /**
-     * Closes the defined Session and all its allocated resources. <br>
-     * After calling this method the Session can not be used for the
-     * communication with the Secure Element any more.
+     * Called when a session has been closed.
      *
-     * @param session the Session that should be closed
-     * @throws RemoteException
-     * @throws NullPointerException if Session is null
+     * @param session The session that has been closed.
      */
-    synchronized void closeSession(Session session, SmartcardError error) {
-        if (session == null) {
-            throw new NullPointerException("session is null");
-        }
-        if (!session.isClosed()) {
-            session.closeChannels(error);
-            session.setClosed();
-        }
+    void sessionClosed(Session session) {
         mSessions.remove(session);
     }
 
-    private void closeSessions(SmartcardError error) {
-        synchronized (mLock) {
-            Iterator<Session> iter = mSessions.iterator();
-            while (iter.hasNext()) {
-                Session session = iter.next();
-                closeSession(session, error);
-                iter = mSessions.iterator();
-            }
-            mSessions.clear();
+    private synchronized void closeSessions() throws Exception {
+        while (mSessions.size() > 0) {
+            mSessions.get(0).close();
         }
+        mSessions.clear();
     }
 
     protected Channel getBasicChannel() {
@@ -266,20 +258,13 @@ public class Terminal {
      *
      * @throws Exception If the channel could not be opened.
      */
-    public OpenLogicalChannelResponse internalOpenLogicalChannel(byte[] aid)
-            throws Exception {
+    public OpenLogicalChannelResponse internalOpenLogicalChannel(byte[] aid) throws Exception {
         SmartcardError error = new SmartcardError();
-        try {
-            OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(aid, error);
-            Exception ex = error.createException();
-            if(ex != null) {
-                throw ex;
-            }
-            return response;
-        } catch(RemoteException e) {
+        OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(aid, error);
+        if (error.isSet()) {
             error.throwException();
-            throw e;
         }
+        return response;
     }
 
     /**
@@ -288,27 +273,27 @@ public class Terminal {
      * @param channelNumber The channel to be closed.
      *
      */
-    public void internalCloseLogicalChannel(int channelNumber) {
-        if(channelNumber == 0) {
-            byte[] selectCommand = new byte[5];
-            selectCommand[0] = 0x00;
-            selectCommand[1] = (byte) 0xA4;
-            selectCommand[2] = 0x04;
-            selectCommand[3] = 0x00;
-            selectCommand[4] = 0x00;
+    public void internalCloseLogicalChannel(int channelNumber) throws Exception {
+        if (channelNumber == 0) {
+            // We need to deselect the applet selected in basic channel
+            // TODO: this is a custom solution, this should be done according to spec once defined.
             try {
-                transmit(
-                        selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
+                // Try to select the default applet
+                byte[] selectCommand = new byte[5];
+                selectCommand[0] = 0x00;
+                selectCommand[1] = (byte) 0xA4;
+                selectCommand[2] = 0x04;
+                selectCommand[3] = 0x00;
+                selectCommand[4] = 0x00;
+                transmit(selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
             } catch (Exception exp) {
-                // Selection of the default application fails
+                // Selection of the default application fails, try with ARA
                 try {
-                    Log.v(SmartcardService._TAG,
-                            "Close basic channel - Exception : "
-                                    + exp.getLocalizedMessage());
+                    Log.v(SmartcardService.LOG_TAG, "Close basic channel - Exception : "
+                            + exp.getLocalizedMessage());
                     if (getAccessControlEnforcer() != null) {
-                        byte[] aid = AccessControlEnforcer
-                                .getDefaultAccessControlAid();
-                        selectCommand = new byte[aid.length + 6];
+                        byte[] aid = AccessControlEnforcer.getDefaultAccessControlAid();
+                        byte[] selectCommand = new byte[aid.length + 6];
                         selectCommand[0] = 0x00;
                         selectCommand[1] = (byte) 0xA4;
                         selectCommand[2] = 0x04;
@@ -316,8 +301,7 @@ public class Terminal {
                         selectCommand[4] = (byte) aid.length;
                         System.arraycopy(aid, 0, selectCommand, 5, aid.length);
                         // TODO: also accept 62XX and 63XX as valid SW
-                        transmit(
-                                selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
+                        transmit(selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
                     }
                 } catch (NoSuchElementException exp2) {
                     // Access Control Applet not available => Don't care
@@ -326,10 +310,8 @@ public class Terminal {
         }
 
         SmartcardError error = new SmartcardError();
-        try {
-            mTerminalService.internalCloseLogicalChannel(channelNumber, error);
-            error.throwException();
-        } catch(RemoteException e) {
+        mTerminalService.internalCloseLogicalChannel(channelNumber, error);
+        if (error.isSet()) {
             error.throwException();
         }
     }
@@ -340,16 +322,13 @@ public class Terminal {
      * @param command the command APDU to be transmitted.
      * @return the response APDU received.
      */
-    public byte[] internalTransmit(byte[] command) {
+    public byte[] internalTransmit(byte[] command) throws Exception {
         SmartcardError error = new SmartcardError();
-        try {
-            byte[] response = mTerminalService.internalTransmit(command, error);
+        byte[] response = mTerminalService.internalTransmit(command, error);
+        if (error.isSet()) {
             error.throwException();
-            return response;
-        } catch(RemoteException e) {
-            error.throwException();
-            return null;
         }
+        return response;
     }
 
     /**
@@ -360,7 +339,7 @@ public class Terminal {
      *         available.
      */
     public byte[] getAtr() {
-        try{
+        try {
             return mTerminalService.getAtr();
         } catch (RemoteException e) {
             return null;
@@ -381,10 +360,14 @@ public class Terminal {
      *
      * @return <code>true</code> if a card is present; <code>false</code>
      *         otherwise.
-     * @throws CardException if card presence information is not available.
      */
-    boolean isCardPresent() throws Exception {
-        return mTerminalService.isCardPresent();
+    public boolean isCardPresent() {
+        try {
+            return mTerminalService.isCardPresent();
+        } catch (RemoteException e) {
+            Log.w(SmartcardService.LOG_TAG, "Error during isCardPresent()", e);
+            return false;
+        }
     }
 
     public boolean isConnected() {
@@ -413,7 +396,7 @@ public class Terminal {
             int minRspLength,
             int swExpected,
             int swMask,
-            String commandName) {
+            String commandName) throws Exception {
 
         byte[] rsp= internalTransmit(cmd);
         if (rsp.length >= 2) {
@@ -478,15 +461,13 @@ public class Terminal {
     public ChannelAccess setUpChannelAccess(
             PackageManager packageManager,
             byte[] aid,
-            String packageName,
-            ISmartcardServiceCallback callback) {
+            String packageName) {
         if (mAccessControlEnforcer == null) {
             throw new AccessControlException(
                     "Access Control Enforcer not properly set up");
         }
         mAccessControlEnforcer.setPackageManager(packageManager);
-        return mAccessControlEnforcer.setUpChannelAccess(
-                aid, packageName, callback);
+        return mAccessControlEnforcer.setUpChannelAccess(aid, packageName);
     }
 
     public AccessControlEnforcer getAccessControlEnforcer() {
@@ -504,66 +485,31 @@ public class Terminal {
      * Implementation of the SmartcardService Reader interface according to
      * OMAPI.
      */
-    final class SmartcardServiceReader extends ISmartcardServiceReader.Stub {
+    private class SmartcardServiceReader extends ISmartcardServiceReader.Stub {
+
         @Override
-        public String getName(SmartcardError error) throws RemoteException {
-            Util.clearError(error);
-            return Terminal.this.getName();
+        public boolean isSecureElementPresent() throws RemoteException {
+            return Terminal.this.isCardPresent();
         }
 
         @Override
-        public boolean isSecureElementPresent(SmartcardError error)
-                throws RemoteException {
-            Util.clearError(error);
+        public ISmartcardServiceSession openSession(SmartcardError error) throws RemoteException {
             try {
-                return Terminal.this.isCardPresent();
+                return Terminal.this.openSession();
             } catch (Exception e) {
-                Util.setError(error, e);
-            }
-            return false;
-        }
-
-        @Override
-        public ISmartcardServiceSession openSession(SmartcardError error)
-                throws RemoteException {
-            Util.clearError(error);
-            try {
-                if (!Terminal.this.isCardPresent()) {
-                    Util.setError(
-                            error,
-                            new IOException("Secure Element is not presented.")
-                            );
-                    return null;
-                }
-            } catch (Exception e) {
-                Util.setError(error, e);
+                Log.e(SmartcardService.LOG_TAG, "Error during openSession()", e);
+                error.set(e);
                 return null;
-            }
-
-            synchronized (mLock) {
-                try {
-                    initializeAccessControl(
-                            false);
-                } catch (Exception e) {
-                    Util.setError(error, e);
-                    // Reader.openSession() will throw an IOException when
-                    // session is null
-                    return null;
-                }
-                Session session = new Session(Terminal.this, mContext);
-                mSessions.add(session);
-
-                return session.new SmartcardServiceSession();
             }
         }
 
         @Override
         public void closeSessions(SmartcardError error) throws RemoteException {
-
-            Util.clearError(error);
-            Terminal.this.closeSessions(error);
-            if(error.createException() != null) {
-                error.throwException();
+            try {
+                Terminal.this.closeSessions();
+            } catch (Exception e) {
+                Log.e(SmartcardService.LOG_TAG, "Error during closeSessions()", e);
+                error.set(e);
             }
         }
     }

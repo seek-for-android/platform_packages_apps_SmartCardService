@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (C) 2011, The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
+/**
  * Contributed by: Giesecke & Devrient GmbH.
  */
 
@@ -25,6 +25,7 @@ import org.simalliance.openmobileapi.service.ISmartcardServiceChannel;
 import org.simalliance.openmobileapi.service.SmartcardError;
 
 import android.os.RemoteException;
+import android.util.Log;
 
 /**
  * Instances of this class represent an ISO7816-4 channel opened to a secure
@@ -64,13 +65,15 @@ public class Channel {
         }
         if (!isClosed()) {
             synchronized (mLock) {
-                SmartcardError error = new SmartcardError();
                 try {
+                    SmartcardError error = new SmartcardError();
                     mChannel.close(error);
-                } catch (RemoteException e) {
-                    throw new IllegalStateException(e.getMessage());
+                    if (error.isSet()) {
+                        error.throwException();
+                    }
+                } catch (Exception e) {
+                    Log.e(getClass().getSimpleName(), "Error closing channel", e);
                 }
-                SEService.checkForException(error);
             }
         }
     }
@@ -89,7 +92,7 @@ public class Channel {
             throw new IllegalStateException("channel must not be null");
         }
         try {
-			return mChannel.isClosed();
+            return mChannel.isClosed();
         } catch (RemoteException e) {
             throw new IllegalStateException(e.getMessage());
         }
@@ -110,10 +113,10 @@ public class Channel {
             throw new IllegalStateException("channel must not be null");
         }
         try {
-			return mChannel.isBasicChannel();
-		} catch (RemoteException e) {
-			throw new IllegalStateException(e.getMessage());
-		}
+            return mChannel.isBasicChannel();
+        } catch (RemoteException e) {
+            throw new IllegalStateException(e.getMessage());
+        }
     }
 
     /**
@@ -158,19 +161,18 @@ public class Channel {
 
         // if channel is closed is checked within service transmit call.
 
-        byte[] response;
-        synchronized( mLock ) {
-            SmartcardError error = new SmartcardError();
+        synchronized (mLock) {
             try {
-                response = mChannel.transmit(command, error);
-            } catch (RemoteException e1) {
-                throw new IllegalStateException(e1.getMessage());
-            } catch (Exception e) {
-                throw new IOException(e.getMessage());
+                SmartcardError error = new SmartcardError();
+                byte[] response = mChannel.transmit(command, error);
+                if (error.isSet()) {
+                    error.throwException();
+                }
+                return response;
+            } catch (RemoteException e) {
+                throw new IllegalStateException(e.getMessage());
             }
-            SEService.checkForException(error);
         }
-        return response;
     }
     
     /**
@@ -191,8 +193,7 @@ public class Channel {
      * Returns null if an application select command has not been performed or the selection response can not
      * be retrieved by the reader implementation.
      */
-    public byte[] getSelectResponse()
-    {
+    public byte[] getSelectResponse() {
         if (mSession.getReader().getSEService() == null
                 || !mSession.getReader().getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
@@ -200,24 +201,12 @@ public class Channel {
         if (mChannel == null) {
             throw new IllegalStateException("channel must not be null");
         }
-        try {
-			if (mChannel.isClosed()) {
-			    throw new IllegalStateException("channel is closed");
-			}
-		} catch (RemoteException e1) {
-		    throw new IllegalStateException(e1.getMessage());
-		}
 
-        byte[] response;
         try {
-            response = mChannel.getSelectResponse();
+            return mChannel.getSelectResponse();
         } catch (RemoteException e) {
-		    throw new IllegalStateException(e.getMessage());
+            throw new IllegalStateException(e.getMessage());
         }
-        
-        if(response != null && response.length == 0)
-    		response = null;
-    	return response;
     }
     
     /**
@@ -252,25 +241,18 @@ public class Channel {
 		} catch (RemoteException e1) {
 		    throw new IllegalStateException(e1.getMessage());
 		}
-        
-        boolean response = false;
-        synchronized( mLock ) {
-	        SmartcardError error = new SmartcardError();
-	        try {
-	            response = mChannel.selectNext(error);
+
+        synchronized (mLock) {
+            try {
+                SmartcardError error = new SmartcardError();
+                boolean response = mChannel.selectNext(error);
+                if (error.isSet()) {
+                    error.throwException();
+                }
+                return response;
             } catch (RemoteException e1) {
                 throw new IllegalStateException(e1.getMessage());
-	        } catch (Exception e) {
-	            throw new IOException(e.getMessage());
-	        }
-	        SEService.checkForException(error);
+            }
         }
-        return response;
-    	
     }
-    
-
-    // ******************************************************************
-    // package private methods
-    // ******************************************************************
 }

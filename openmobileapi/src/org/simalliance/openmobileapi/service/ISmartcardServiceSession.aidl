@@ -27,15 +27,8 @@ import org.simalliance.openmobileapi.service.SmartcardError;
 interface ISmartcardServiceSession {
 
     /**
-     * Get the reader that provides this session.
-     * 
-     * @return The Reader object.
+     * Returns the ATR of the connected card or null if the ATR is not available.
      */
-    ISmartcardServiceReader getReader();
-
-   	/**
-	 * Returns the ATR of the connected card or null if the ATR is not available.
-	 */
     byte[] getAtr();
 
     /**
@@ -59,20 +52,11 @@ interface ISmartcardServiceSession {
 
     /**
      * Opens a connection using the basic channel of the card in the
-     * specified reader and returns a channel handle.
+     * specified reader and returns a channel handle. Selects the specified applet if aid != null.
      * Logical channels cannot be opened with this connection.
      * Use interface method openLogicalChannel() to open a logical channel.
      */
-    ISmartcardServiceChannel openBasicChannel(ISmartcardServiceCallback callback, out SmartcardError error);
-
-    /**
-     * Opens a connection using the basic channel of the card in the
-     * specified reader and returns a channel handle. Selects the specified applet.
-     * Logical channels cannot be opened with this connection.
-     * Selection of other applets with this connection is not supported.
-     * Use interface method openLogicalChannel() to open a logical channel.
-     */
-    ISmartcardServiceChannel openBasicChannelAid(in byte[] aid, ISmartcardServiceCallback callback, out SmartcardError error);
+    ISmartcardServiceChannel openBasicChannel(in byte[] aid, ISmartcardServiceCallback callback, out SmartcardError error);
 
     /**
      * Opens a connection using the next free logical channel of the card in the

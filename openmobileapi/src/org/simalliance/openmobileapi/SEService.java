@@ -19,7 +19,7 @@
 
 package org.simalliance.openmobileapi;
 
-import java.security.AccessControlException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -212,24 +212,16 @@ public class SEService {
     // package private methods
     // ******************************************************************
 
-    private ISmartcardServiceReader getReader(String name) {
-
-        SmartcardError error = new SmartcardError();
-        ISmartcardServiceReader reader;
+    private ISmartcardServiceReader getReader(String name) throws IOException {
         try {
-            reader = mSmartcardService.getReader(name, error);
+            SmartcardError error = new SmartcardError();
+            ISmartcardServiceReader reader = mSmartcardService.getReader(name, error);
+            if (error.isSet()) {
+                error.throwException();
+            }
+            return reader;
         } catch (RemoteException e) {
             throw new IllegalStateException(e.getMessage());
-        }
-        checkForException(error);
-        return reader;
-    }
-
-    static void checkForException(SmartcardError error) {
-        try {
-            error.throwException();
-        } catch (AccessControlException exp) {
-            throw new SecurityException(exp.getMessage());
         }
     }
 
@@ -249,9 +241,14 @@ public class SEService {
             throw new IllegalStateException(e);
         }
 
-        mReaders = new HashMap<String, Reader>();
+        mReaders = new HashMap<>();
         for (String readerName : readerNames) {
-            mReaders.put(readerName, new Reader(this, getReader(readerName), readerName));
+            try {
+                mReaders.put(readerName, new Reader(this, getReader(readerName), readerName));
+            } catch (Exception e) {
+                // If an error happens during terminal initialization, don't add it and continue
+                Log.w(SERVICE_TAG, "Error adding reader " + readerName, e);
+            }
         }
     }
 
@@ -261,7 +258,7 @@ public class SEService {
      * @return An array of readers sorted according to its name.
      */
     private Reader[] sortReaders() {
-        ArrayList<Reader> readersList = new ArrayList<Reader>();
+        ArrayList<Reader> readersList = new ArrayList<>();
         Reader reader;
 
         // Set SIMs at the top of the list

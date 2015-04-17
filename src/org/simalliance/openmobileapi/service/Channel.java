@@ -25,13 +25,7 @@ import android.os.RemoteException;
 
 import android.util.Log;
 
-
-import java.security.AccessControlException;
-import java.util.NoSuchElementException;
-
-import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
-
 
 /**
  * Smartcard service base class for channel resources.
@@ -50,16 +44,21 @@ public class Channel implements IBinder.DeathRecipient {
 
     protected final IBinder mBinder;
 
-    
     protected ChannelAccess mChannelAccess = null;
-    protected int mCallingPid = 0;
-    
 
     protected ISmartcardServiceCallback mCallback;
 
     protected boolean mHasSelectedAid = false;
     protected byte[] mAid = null;
 
+    /**
+     * Creates a Channel object.
+     *
+     * @param session The session that created this channel.
+     * @param channelNumber The channel number.
+     * @param selectResponse The response to the select command (if any).
+     * @param callback
+     */
     public Channel(Session session,
             int channelNumber,
             byte[] selectResponse,
@@ -73,23 +72,27 @@ public class Channel implements IBinder.DeathRecipient {
         try {
             mBinder.linkToDeath(this, 0);
         } catch (RemoteException e) {
-            Log.e(SmartcardService._TAG, "Failed to register client callback");
+            Log.e(SmartcardService.LOG_TAG, "Failed to register client callback");
         }
+    }
+
+    public SmartcardServiceChannel getBinder() {
+        return new SmartcardServiceChannel();
     }
 
     public void binderDied() {
         // Close this channel if the client died.
         try {
-            Log.e(SmartcardService._TAG, Thread.currentThread().getName()
+            Log.e(SmartcardService.LOG_TAG, Thread.currentThread().getName()
                     + " Client " + mBinder.toString() + " died");
-            close(new SmartcardError());
+            close();
         } catch (Exception ignore) {
         }
     }
 
-    public synchronized void close(SmartcardError error) {
+    public synchronized void close() throws Exception {
         mSession.closeChannel(getChannelNumber());
-        this.mIsClosed = true;
+        mIsClosed = true;
         mBinder.unlinkToDeath(this, 0);
     }
 
@@ -128,23 +131,32 @@ public class Channel implements IBinder.DeathRecipient {
         this.mHandle = handle;
     }
 
-    public byte[] transmit(byte[] command) {
-        
-        if (mChannelAccess == null) {
-            throw new AccessControlException(" Channel access not set.");
+    public byte[] transmit(byte[] command) throws Exception {
+
+        if (isClosed()) {
+            throw new IllegalStateException("Channel is closed");
         }
-        if (mChannelAccess.getCallingPid() != mCallingPid) {
-            
-            
-            
-            throw new AccessControlException(" Wrong Caller PID. ");
+
+        if (command == null) {
+            throw new NullPointerException("Command must not be null");
         }
-        
-        
+
         if (command.length < 4) {
-            throw new IllegalArgumentException(
-                    " command must not be smaller than 4 bytes");
+            throw new IllegalArgumentException("Command must have at least 4 bytes");
         }
+
+        if (mChannelAccess == null) {
+            throw new SecurityException("Channel access not set.");
+        }
+
+        if (mChannelAccess.getCallingPid() != Binder.getCallingPid()) {
+            throw new SecurityException("Wrong Caller PID.");
+        }
+
+        if (command.length < 4) {
+            throw new IllegalArgumentException("Command must not be smaller than 4 bytes");
+        }
+
         if (((command[0] & (byte) 0x80) == 0)
                 && ((byte) (command[0] & (byte) 0x60) != (byte) 0x20)) {
             // ISO command
@@ -156,35 +168,32 @@ public class Channel implements IBinder.DeathRecipient {
                 throw new SecurityException(
                         "SELECT by DF name command not allowed");
             }
-
-        } else {
-            // GlobalPlatform command
         }
-        
+
         checkCommand(command);
-        
 
         // set channel number bits
-        command[0] = setChannelToClassByte(command[0], mChannelNumber);
+        command[0] = Util.setChannelToClassByte(command[0], mChannelNumber);
 
         return mSession.transmit(command, 2, 0, 0, null);
     }
 
-    public boolean selectNext() {
-        
+    public boolean selectNext() throws Exception {
+
+        if (isClosed()) {
+            throw new IllegalStateException("Channel is closed");
+        }
+
         if (mChannelAccess == null) {
-            throw new AccessControlException(" Channel access not set.");
+            throw new SecurityException("Channel access not set.");
         }
-        if (mChannelAccess.getCallingPid() != mCallingPid) {
-            
-            
-            
-            throw new AccessControlException(" Wrong Caller PID. ");
+
+        if (mChannelAccess.getCallingPid() != Binder.getCallingPid()) {
+            throw new SecurityException(" Wrong Caller PID. ");
         }
-        
 
         if (mAid == null || mAid.length == 0) {
-            throw new IllegalArgumentException(" No aid given ");
+            throw new IllegalArgumentException("No AID given");
         }
 
         mSelectResponse = null;
@@ -197,13 +206,9 @@ public class Channel implements IBinder.DeathRecipient {
         System.arraycopy(mAid, 0, selectCommand, 5, mAid.length);
 
         // set channel number bits
-        selectCommand[0] = setChannelToClassByte(
-                selectCommand[0], mChannelNumber);
+        selectCommand[0] = Util.setChannelToClassByte(selectCommand[0], mChannelNumber);
 
-        mSelectResponse = mSession.transmit(
-                selectCommand, 2, 0, 0, "SELECT NEXT");
-
-        
+        mSelectResponse = mSession.transmit(selectCommand, 2, 0, 0, "SELECT NEXT");
 
         int sw1 = mSelectResponse[mSelectResponse.length - 2] & 0xFF;
         int sw2 = mSelectResponse[mSelectResponse.length - 1] & 0xFF;
@@ -215,44 +220,12 @@ public class Channel implements IBinder.DeathRecipient {
             mSelectResponse = null;
             return false;
         } else {
-            throw new UnsupportedOperationException(" unsupported operation");
+            throw new UnsupportedOperationException("Unsupported operation");
         }
     }
 
-    /**
-     * Returns a copy of the given CLA byte where the channel number bits are
-     * set as specified by the given channel number See GlobalPlatform Card
-     * Specification 2.2.0.7: 11.1.4 Class Byte Coding.
-     *
-     * @param cla the CLA byte. Won't be modified
-     * @param channelNumber within [0..3] (for first interindustry class byte
-     *            coding) or [4..19] (for further interindustry class byte
-     *            coding)
-     * @return the CLA byte with set channel number bits. The seventh bit
-     *         indicating the used coding (first/further interindustry class
-     *         byte coding) might be modified
-     */
-    public byte setChannelToClassByte(byte cla, int channelNumber) {
-        if (channelNumber < 4) {
-            // b7 = 0 indicates the first interindustry class byte coding
-            cla = (byte) ((cla & 0xBC) | channelNumber);
-        } else if (channelNumber < 20) {
-            // b7 = 1 indicates the further interindustry class byte coding
-            boolean isSM = (cla & 0x0C) != 0;
-            cla = (byte) ((cla & 0xB0) | 0x40 | (channelNumber - 4));
-            if (isSM) {
-                cla |= 0x20;
-            }
-        } else {
-            throw new IllegalArgumentException(
-                    "Channel number must be within [0..19]");
-        }
-        return cla;
-    }
-
-    
     public void setChannelAccess(ChannelAccess channelAccess) {
-        this.mChannelAccess = channelAccess;
+        mChannelAccess = channelAccess;
     }
 
     public ChannelAccess getChannelAccess() {
@@ -260,20 +233,20 @@ public class Channel implements IBinder.DeathRecipient {
     }
 
     private void checkCommand(byte[] command) {
-        if (mSession.getAccessControlEnforcer() != null) {
-            // check command if it complies to the access rules.
-            // if not an exception is thrown
-            mSession.getAccessControlEnforcer()
-                .checkCommand(this, command);
-        } else {
-            throw new AccessControlException(
-                    "FATAL: Access Controller not set for Terminal: "
-                    + mSession.getReaderName());
+        if (mSession.getReader().getAccessControlEnforcer() == null) {
+            throw new SecurityException("FATAL: Access Controller Enforcer not set for Terminal: "
+                                            + mSession.getReader().getName());
         }
+
+        // check command if it complies to the access rules.
+        // if not an exception is thrown
+        mSession.getReader().getAccessControlEnforcer().checkCommand(this, command);
+
     }
 
     /**
      * set selected aid flag and aid (may be null).
+     * TODO: this method should be removed and AID be set in constructor
      */
     public void hasSelectedAid(boolean has, byte[] aid) {
         mHasSelectedAid = has;
@@ -299,7 +272,6 @@ public class Channel implements IBinder.DeathRecipient {
     }
 
     boolean isClosed() {
-        
         return mIsClosed;
     }
 
@@ -307,26 +279,15 @@ public class Channel implements IBinder.DeathRecipient {
      * Implementation of the SmartcardService Channel interface according to
      * OMAPI.
      */
-    final class SmartcardServiceChannel extends ISmartcardServiceChannel.Stub {
-
-        private final Session mSession;
-
-        public SmartcardServiceChannel(Session session) {
-            mSession = session;
-        }
+    private class SmartcardServiceChannel extends ISmartcardServiceChannel.Stub {
 
         @Override
         public void close(SmartcardError error) throws RemoteException {
-
-            Util.clearError(error);
             try {
-                Channel.this.close(error);
+                Channel.this.close();
             } catch (Exception e) {
-                Util.setError(error, e);
-            } finally {
-                if (mSession != null) {
-                    mSession.removeChannel(Channel.this);
-                }
+                Log.e(SmartcardService.LOG_TAG, "Error during close()", e);
+                error.set(e);
             }
         }
 
@@ -336,83 +297,33 @@ public class Channel implements IBinder.DeathRecipient {
         }
 
         @Override
-        public boolean isBasicChannel()
-                throws RemoteException {
+        public boolean isBasicChannel() throws RemoteException {
             return Channel.this.isBasicChannel();
         }
 
         @Override
-        public byte[] getSelectResponse()
-                throws RemoteException {
+        public byte[] getSelectResponse() throws RemoteException {
             return Channel.this.getSelectResponse();
         }
 
         @Override
-        public ISmartcardServiceSession getSession()
-                throws RemoteException {
-            return mSession.new SmartcardServiceSession();
-        }
-
-        @Override
-        public byte[] transmit(byte[] command, SmartcardError error)
-                throws RemoteException {
-            Util.clearError(error);
-
+        public byte[] transmit(byte[] command, SmartcardError error) throws RemoteException {
             try {
-                if (isClosed()) {
-                    Util.setError(
-                            error,
-                            IllegalStateException.class,
-                            "channel is closed");
-                    return null;
-                }
-
-                if (command == null) {
-                    Util.setError(
-                            error,
-                            IllegalArgumentException.class,
-                            "command must not be null");
-                    return null;
-                }
-                if (command.length < 4) {
-                    Util.setError(
-                            error,
-                            IllegalArgumentException.class,
-                            "command must have at least 4 bytes");
-                    return null;
-                }
-
-                mCallingPid = Binder.getCallingPid();
-                
                 return Channel.this.transmit(command);
             } catch (Exception e) {
-                Log.v(SmartcardService._TAG, "transmit Exception: "
-                        + e.getMessage()
-                        + " (Command: " + Util.bytesToString(command) + ")");
-                Util.setError(error, e);
+                Log.e(SmartcardService.LOG_TAG, "Error during transmit()", e);
+                error.set(e);
                 return null;
             }
         }
 
         @Override
-        public boolean selectNext(SmartcardError error)
-                throws RemoteException {
-            Util.clearError(error);
-
+        public boolean selectNext(SmartcardError error) throws RemoteException {
             try {
-                if (isClosed()) {
-                    Util.setError(
-                            error,
-                            IllegalStateException.class,
-                            "channel is closed");
-                    return false;
-                }
-
-                mCallingPid = Binder.getCallingPid();
-
                 return Channel.this.selectNext();
             } catch (Exception e) {
-                Util.setError(error, e);
+                Log.e(SmartcardService.LOG_TAG, "Error during selectNext()", e);
+                error.set(e);
                 return false;
             }
         }

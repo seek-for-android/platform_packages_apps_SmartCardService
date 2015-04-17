@@ -24,14 +24,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Build;
-import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
-
-import org.simalliance.openmobileapi.service.Channel.SmartcardServiceChannel;
-import org.simalliance.openmobileapi.service.Terminal.SmartcardServiceReader;
-import org.simalliance.openmobileapi.service.security.ChannelAccess;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -50,17 +45,13 @@ import dalvik.system.DexClassLoader;
  */
 public final class SmartcardService extends Service {
 
-    public static final String _TAG = "SmartcardService";
-    public static final String _UICC_TERMINAL = "SIM";
-    public static final String _eSE_TERMINAL = "eSE";
-    public static final String _SD_TERMINAL = "SD";
+    public static final String LOG_TAG = "SmartcardService";
 
     /**
      * For now this list is setup in onCreate(), not changed later and therefore
      * not synchronized.
      */
-    private Map<String, Terminal> mTerminals
-        = new TreeMap<String, Terminal>();
+    private Map<String, Terminal> mTerminals = new TreeMap<>();
 
     public SmartcardService() {
         super();
@@ -68,8 +59,7 @@ public final class SmartcardService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        Log.v(_TAG, Thread.currentThread().getName()
-                + " smartcard service onBind");
+        Log.v(LOG_TAG, Thread.currentThread().getName() + " smartcard service onBind");
         if (ISmartcardService.class.getName().equals(intent.getAction())) {
             return mSmartcardBinder;
         }
@@ -78,8 +68,7 @@ public final class SmartcardService extends Service {
 
     @Override
     public void onCreate() {
-        Log.v(_TAG, Thread.currentThread().getName()
-                + " smartcard service onCreate");
+        Log.v(LOG_TAG, Thread.currentThread().getName() + " smartcard service onCreate");
         createTerminals();
     }
 
@@ -109,28 +98,25 @@ public final class SmartcardService extends Service {
     }
 
     public void onDestroy() {
-        Log.v(_TAG, " smartcard service onDestroy ...");
+        Log.v(LOG_TAG, " smartcard service onDestroy ...");
         for (Terminal terminal : mTerminals.values()) {
             terminal.onSmartcardServiceShutdown();
         }
 
-        Log.v(_TAG, Thread.currentThread().getName()
+        Log.v(LOG_TAG, Thread.currentThread().getName()
                 + " ... smartcard service onDestroy");
 
     }
 
-    private Terminal getTerminal(String reader, SmartcardError error) {
+    private ISmartcardServiceReader getReader(String reader) {
         if (reader == null) {
-            Util.setError(error, NullPointerException.class,
-                    "reader must not be null");
-            return null;
+            throw new NullPointerException("Reader must not be null");
         }
         Terminal terminal = mTerminals.get(reader);
         if (terminal == null) {
-            Util.setError(error, IllegalArgumentException.class,
-                    "unknown reader");
+            throw new IllegalArgumentException("Unknown reader");
         }
-        return terminal;
+        return terminal.getBinder();
     }
 
     private void createTerminals() {
@@ -139,7 +125,7 @@ public final class SmartcardService extends Service {
         List<ResolveInfo> terminallist = pm.queryIntentServices(
                 new Intent("org.simalliance.openmobileapi.TERMINAL_DISCOVERY"),
                 PackageManager.GET_INTENT_FILTERS);
-        Log.d(_TAG, "Found " + terminallist.size() + " terminals.");
+        Log.d(LOG_TAG, "Found " + terminallist.size() + " terminals.");
         for (ResolveInfo info : terminallist) {
             try {
                 String packageName = info.serviceInfo.applicationInfo.packageName;
@@ -154,10 +140,10 @@ public final class SmartcardService extends Service {
                         .getMethod("getType", (Class<?>[]) null)
                         .invoke(null, (Object[]) null);
                 String name = terminalType + getIndexForTerminal(terminalType);
-                Log.d(_TAG, "Adding terminal " + name);
+                Log.d(LOG_TAG, "Adding terminal " + name);
                 mTerminals.put(name, new Terminal(SmartcardService.this, name, info));
             } catch (Throwable t) {
-                Log.e(_TAG, Thread.currentThread().getName()
+                Log.e(LOG_TAG, Thread.currentThread().getName()
                         + " CreateReaders Error: "
                         + ((t.getMessage() != null) ? t.getMessage()
                         : "unknown"));
@@ -167,7 +153,7 @@ public final class SmartcardService extends Service {
 
     private String[] createTerminalNamesList() {
         Set<String> names = mTerminals.keySet();
-        ArrayList<String> list = new ArrayList<String>(names);
+        ArrayList<String> list = new ArrayList<>(names);
 
         return list.toArray(new String[list.size()]);
     }
@@ -191,7 +177,7 @@ public final class SmartcardService extends Service {
      * @return An array of terminals of the specified type.
      */
     private Terminal[] getTerminalsOfType(String terminalType) {
-        ArrayList<Terminal> terminals = new ArrayList<Terminal>();
+        ArrayList<Terminal> terminals = new ArrayList<>();
         int index = 1;
         String name = terminalType + index;
         while (mTerminals.containsKey(name)) {
@@ -203,31 +189,33 @@ public final class SmartcardService extends Service {
         return terminals.toArray(new Terminal[terminals.size()]);
     }
 
+    // TODO: move this to an inner, named class
     /**
      * The smartcard service interface implementation.
      */
-    private final ISmartcardService.Stub mSmartcardBinder
-        = new ISmartcardService.Stub() {
+    private final ISmartcardService.Stub mSmartcardBinder = new ISmartcardService.Stub() {
 
         @Override
-        public String[] getReaders(SmartcardError error)
-                throws RemoteException {
-            Util.clearError(error);
-            Log.v(_TAG, "getReaders()");
-            return createTerminalNamesList();
+        public String[] getReaders(SmartcardError error) throws RemoteException {
+            Log.v(LOG_TAG, "getReaders()");
+            try {
+                return createTerminalNamesList();
+            } catch (Exception e) {
+                Log.e(SmartcardService.LOG_TAG, "Error during getReaders()", e);
+                error.set(e);
+                return null;
+            }
         }
 
         @Override
-        public ISmartcardServiceReader getReader(String reader,
-                SmartcardError error) throws RemoteException {
-            Util.clearError(error);
-            Terminal terminal = getTerminal(reader, error);
-            if (terminal != null) {
-                return terminal.new SmartcardServiceReader();
+        public ISmartcardServiceReader getReader(String reader, SmartcardError error) throws RemoteException {
+            try {
+                return SmartcardService.this.getReader(reader);
+            } catch (Exception e) {
+                Log.e(SmartcardService.LOG_TAG, "Error during getReader()", e);
+                error.set(e);
+                return null;
             }
-            Util.setError(error, IllegalArgumentException.class,
-                    "invalid reader name");
-            return null;
         }
     };
 }

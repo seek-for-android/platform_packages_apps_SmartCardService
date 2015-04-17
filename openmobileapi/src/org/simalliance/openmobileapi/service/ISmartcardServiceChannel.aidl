@@ -53,13 +53,6 @@ interface ISmartcardServiceChannel {
     byte[] getSelectResponse();
 
     /**
-     * Get the session that has opened this channel.
-     * 
-     * @return the session object this channel is bound to.
-     */
-    ISmartcardServiceSession getSession();
-
-    /**
      * Transmits the specified command APDU and returns the response APDU.
      * MANAGE channel commands are not supported.
      * Selection of applets is not supported in logical channels.

@@ -30,11 +30,8 @@ public class Util {
 
     public static byte[] mergeBytes(byte[] array1, byte[] array2) {
         byte[] data = new byte[array1.length + array2.length];
-        int i = 0;
-        for (; i < array1.length; i++)
-            data[i] = array1[i];
-        for (int j = 0; j < array2.length; j++)
-            data[j + i] = array2[j];
+        System.arraycopy(array1, 0, data, 0, array1.length);
+        System.arraycopy(array2, 0, data, array1.length, array2.length);
         return data;
     }
 
@@ -47,7 +44,7 @@ public class Util {
     public static String bytesToString(byte[] bytes) {
         if(bytes == null)
             return "";
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
             sb.append(String.format("%02x ", b & 0xFF));
         }
@@ -66,7 +63,7 @@ public class Util {
      * @param length the number of bytes of the second part to be appended.
      * @return a concatenated response.
      */
-    static byte[] appendResponse(byte[] r1, byte[] r2, int length) {
+    public static byte[] appendResponse(byte[] r1, byte[] r2, int length) {
         byte[] rsp = new byte[r1.length + length];
         System.arraycopy(r1, 0, rsp, 0, r1.length);
         System.arraycopy(r2, 0, rsp, r1.length, length);
@@ -81,8 +78,8 @@ public class Util {
      * @param sw the response status word.
      * @return a formatted exception message.
      */
-    static String createMessage(String commandName, int sw) {
-        StringBuffer message = new StringBuffer();
+    public static String createMessage(String commandName, int sw) {
+        StringBuilder message = new StringBuilder();
         if (commandName != null) {
             message.append(commandName).append(" ");
         }
@@ -99,7 +96,7 @@ public class Util {
      * @param message the message to be formatted.
      * @return a formatted exception message.
      */
-    static String createMessage(String commandName, String message) {
+    public static String createMessage(String commandName, String message) {
         if (commandName == null) {
             return message;
         }
@@ -110,28 +107,10 @@ public class Util {
         if (array==null) return null;
         if (length==-1) length=array.length-offset;
 
-        StringBuffer buffer=new StringBuffer();
+        StringBuilder buffer=new StringBuilder();
         for (int ind=offset;ind<offset+length;ind++)
-            buffer.append(prefix+Integer.toHexString(0x100+(array[ind] & 0xFF)).substring(1));
+            buffer.append(prefix).append(Integer.toHexString(0x100 + (array[ind] & 0xFF)).substring(1));
         return buffer.toString();
-    }
-
-    public static void clearError(SmartcardError error) {
-        if (error != null) {
-            error.clear();
-        }
-    }
-
-    public static void setError(SmartcardError error, Class clazz, String message) {
-        if (error != null) {
-            error.setError(clazz, message);
-        }
-    }
-
-    public static void setError(SmartcardError error, Exception e) {
-        if (error != null) {
-            error.setError(e.getClass(), e.getMessage());
-        }
     }
 
     /**
@@ -157,5 +136,36 @@ public class Util {
         }
         throw new AccessControlException(
                 "Caller PackageName can not be determined");
+    }
+
+    /**
+     * Returns a copy of the given CLA byte where the channel number bits are
+     * set as specified by the given channel number See GlobalPlatform Card
+     * Specification 2.2.0.7: 11.1.4 Class Byte Coding.
+     *
+     * @param cla the CLA byte. Won't be modified
+     * @param channelNumber within [0..3] (for first interindustry class byte
+     *            coding) or [4..19] (for further interindustry class byte
+     *            coding)
+     * @return the CLA byte with set channel number bits. The seventh bit
+     *         indicating the used coding (first/further interindustry class
+     *         byte coding) might be modified
+     */
+    public static byte setChannelToClassByte(byte cla, int channelNumber) {
+        if (channelNumber < 4) {
+            // b7 = 0 indicates the first interindustry class byte coding
+            cla = (byte) ((cla & 0xBC) | channelNumber);
+        } else if (channelNumber < 20) {
+            // b7 = 1 indicates the further interindustry class byte coding
+            boolean isSM = (cla & 0x0C) != 0;
+            cla = (byte) ((cla & 0xB0) | 0x40 | (channelNumber - 4));
+            if (isSM) {
+                cla |= 0x20;
+            }
+        } else {
+            throw new IllegalArgumentException(
+                    "Channel number must be within [0..19]");
+        }
+        return cla;
     }
 }

@@ -206,7 +206,7 @@ public class SEService {
      * @return Version String.
      */
     public String getVersion() {
-        return "2.05";
+        return "3.0";
     }
 
     // ******************************************************************

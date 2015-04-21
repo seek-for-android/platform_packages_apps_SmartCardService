@@ -170,6 +170,7 @@ public class Session {
      *
      * @param aid the AID of the Applet to be selected on this channel, as a
      *            byte array, or null if no Applet is to be selected.
+     * @param P2 the P2 parameter of the SELECT APDU executed on this channel.
      * @throws IOException if there is a communication problem to the reader or
      *             the Secure Element (e.g. if the SE is not responding).
      * @throws IllegalStateException if the Secure Element session is used after
@@ -183,8 +184,7 @@ public class Session {
      *             exist in the SE
      * @return an instance of Channel if available or null.
      */
-    public Channel openBasicChannel(byte[] aid) throws IOException {
-
+    public Channel openBasicChannel(byte[] aid, Byte P2) throws IOException {
         if (mReader.getSEService() == null || !mReader.getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
         }
@@ -213,6 +213,31 @@ public class Session {
                 throw new IllegalStateException(e.getMessage());
             }
         }
+    }
+
+
+    /**
+     * This method is provided to ease the development of mobile application and for compliancy
+     * with existing applications.
+     * This method is equivalent to openBasicChannel(aid, P2=0x00)
+     *
+     * @param aid the AID of the Applet to be selected on this channel, as a
+     *            byte array, or null if no Applet is to be selected.
+     * @throws IOException if there is a communication problem to the reader or
+     *             the Secure Element (e.g. if the SE is not responding).
+     * @throws IllegalStateException if the Secure Element session is used after
+     *             being closed.
+     * @throws IllegalArgumentException if the aid's length is not within 5 to
+     *             16 (inclusive).
+     * @throws SecurityException if the calling application cannot be granted
+     *             access to this AID or the default application on this
+     *             session.
+     * @throws NoSuchElementException if an Applet with the defined AID does not
+     *             exist in the SE
+     * @return an instance of Channel if available or null.
+     */
+    public Channel openBasicChannel(byte[] aid) throws IOException {
+        return openBasicChannel(aid, (byte) 0x00);
     }
 
     /**
@@ -244,7 +269,7 @@ public class Session {
      * @return an instance of Channel. Null if the Secure Element is unable to
      *         provide a new logical channel.
      */
-    public Channel openLogicalChannel(byte[] aid) throws IOException {
+    public Channel openLogicalChannel(byte[] aid, Byte P2) throws IOException {
 
         if (mReader.getSEService() == null || !mReader.getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
@@ -274,5 +299,32 @@ public class Session {
                 throw new IllegalStateException(e.getMessage());
             }
         }
+    }
+
+    /**
+     * This method is provided to ease the development of mobile application and for compliancy
+     * with existing applications.
+     * This method is equivalent to openLogicalChannel(aid, P2=0x00)
+     *
+     * @param aid the AID of the Applet to be selected on this channel, as a
+     *            byte array.
+     * @throws IOException if there is a communication problem to the reader or
+     *             the Secure Element. (e.g. if the SE is not responding)
+     * @throws IllegalStateException if the Secure Element is used after being
+     *             closed.
+     * @throws IllegalArgumentException if the aid's length is not within 5 to
+     *             16 (inclusive).
+     * @throws SecurityException if the calling application cannot be granted
+     *             access to this AID or the default application on this
+     *             session.
+     * @throws NoSuchElementException if an Applet with the defined AID does not
+     *             exist in the SE or a logical channel is already open to a
+     *             non-multiselectable applet
+     * @return an instance of Channel. Null if the Secure Element is unable to
+     *         provide a new logical channel.
+     */
+    public Channel openLogicalChannel(byte[] aid) throws IOException {
+
+        return openLogicalChannel(aid, (byte) 0x00);
     }
 }

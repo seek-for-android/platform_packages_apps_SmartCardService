@@ -711,6 +711,7 @@ public class SecureStorageProvider extends Provider {
             case ISO7816.SW_REF_NOT_FOUND:
                 // There are no more entries.
                 allEntriesHasBeenRead = true;
+                break;
             case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
@@ -832,7 +833,7 @@ public class SecureStorageProvider extends Provider {
             ProcessingException {
 
         byte[] titleArray = title.getBytes();
-        CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, INS_CREATE_SS_ENTRY, (byte) 0x00, (byte) 0x00, titleArray);
+        CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, INS_CREATE_SS_ENTRY, (byte) 0x00, (byte) 0x00,titleArray, 0x02);
 
         ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         int swValue = apduResponse.getSwValue();
@@ -857,7 +858,7 @@ public class SecureStorageProvider extends Provider {
             throws IOException, ProcessingException {
 
         byte[] idArray = ByteArrayConverter.intToByteArray(id);
-        CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, INS_DELETE_SS_ENTRY, idArray[0], idArray[1]);
+        CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, INS_DELETE_SS_ENTRY, idArray[2], idArray[3]);
 
         ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
@@ -907,7 +908,7 @@ public class SecureStorageProvider extends Provider {
         ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         int swValue = apduResponse.getSwValue();
         if (swValue == ISO7816.SW_NO_FURTHER_QUALIFICATION) {
-            return ByteArrayConverter.byteArrayToCharString(apduResponse.getData());
+            return new String(apduResponse.getData(), "UTF-8");
         } else {
             throw new ProcessingException(swValue);
         }
@@ -1051,7 +1052,7 @@ public class SecureStorageProvider extends Provider {
     private int sendGetIdCommand(String title)
             throws IOException, ProcessingException {
 
-        CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, ISO7816.INS_READ_RECORD_B2, (byte) 0x00, (byte) 0x00, title.getBytes());
+        CommandApdu apdu = new CommandApdu(ISO7816.CLA_PROPRIETARY, ISO7816.INS_READ_RECORD_B2, (byte) 0x00, (byte) 0x00, title.getBytes(), (byte) 0x02);
         ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
 
         int swValue = apduResponse.getSwValue();

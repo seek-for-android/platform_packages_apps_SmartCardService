@@ -774,7 +774,7 @@ public class FileViewProvider extends Provider {
         }
 
         // Form and send the APDU
-        byte p1 = 0;
+        byte p1;
         if (fromCurrentDF) {
             p1 = (byte) 0x09;
         } else {
@@ -783,7 +783,6 @@ public class FileViewProvider extends Provider {
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_SELECT, p1, (byte) 0x04, pathByteArray);
 
         ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
-
         // Parse the response
         int swValue = apduResponse.getSwValue();
         switch (swValue) {
@@ -843,9 +842,7 @@ public class FileViewProvider extends Provider {
         // Form and send the APDU
         byte[] data = new byte[FID_LENGTH];
         System.arraycopy(ByteArrayConverter.intToByteArray(fileID), 2, data, 0, data.length);
-
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_SELECT, (byte) 0x00, (byte) 0x04, data);
-
         ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         // Parse the response
         int swValue = apduResponse.getSwValue();
@@ -1040,7 +1037,7 @@ public class FileViewProvider extends Provider {
         }
 
         // Prepare and send the APDU
-        CommandApdu apdu = null;
+        CommandApdu apdu;
         if (rec.getNumber() == APPEND_RECORD) {
             apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_APPEND_RECORD, (byte) 0x00, (byte) ((sfi << 3) | 0), rec.getData());
         } else {
@@ -1246,8 +1243,8 @@ public class FileViewProvider extends Provider {
         }
 
         // Form the APDU
-        byte p1 = 0;
-        byte p2 = 0;
+        byte p1;
+        byte p2;
         if (sfi == CURRENT_FILE) {
             if (offset > OFFSET_LONG_MAX_VALUE) {
                 throw new IllegalArgumentException(
@@ -1275,9 +1272,8 @@ public class FileViewProvider extends Provider {
             p1 = (byte) (0x80 | sfi);
             p2 = (byte) offset;
         }
-        // Send the APDU
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_READ_BINARY_B0, p1, p2, length);
-
+        // Send the APDU
         ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
         // Handle the response
         int swValue = apduResponse.getSwValue();
@@ -1376,8 +1372,8 @@ public class FileViewProvider extends Provider {
                     ErrorStrings.paramInvalidValue("length"));
         }
 
-        byte p1 = 0;
-        byte p2 = 0;
+        byte p1;
+        byte p2;
         if (sfi == CURRENT_FILE) {
             if (offset > OFFSET_LONG_MAX_VALUE) {
                 throw new IllegalArgumentException(
@@ -1397,10 +1393,10 @@ public class FileViewProvider extends Provider {
             p1 = (byte) (0x80 | (0x9F & sfi));
             p2 = (byte) offset;
         }
-
         CommandApdu apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_UPDATE_BINARY_D6, p1, p2, data);
 
         ResponseApdu apduResponse = new ResponseApdu(getChannel().transmit(apdu.toByteArray()));
+        // Parse the response
         int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:

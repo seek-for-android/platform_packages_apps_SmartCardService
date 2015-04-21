@@ -39,28 +39,6 @@ public final class ByteArrayConverter {
     public static final int BEGINNING_ARRAY = 0;
 
     /**
-     * Forms a char string from the byte array. Mostly used to convert
-     *  ASCII characters.
-     *
-     * @param byteArray The byte array to be hex-encoded.
-     *
-     * @return the char string.
-     */
-    public static String byteArrayToCharString(byte[] byteArray) {
-        if (byteArray == null) {
-            return "";
-        }
-
-        StringBuffer sb = new StringBuffer();
-
-        for (byte b : byteArray) {
-            sb.append((char) b);
-        }
-
-        return sb.toString();
-    }
-
-    /**
      * Forms a FileViewProvider-compatible path String (i.e., transforms the
      * byte array {0x3F, 0x00, 0x2F, 0xE2} into the String "3F00:2FE2").
      *

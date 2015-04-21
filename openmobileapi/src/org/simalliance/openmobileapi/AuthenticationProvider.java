@@ -120,6 +120,9 @@ public class AuthenticationProvider extends Provider {
             case ISO7816.SW_REF_DATA_NOT_USABLE:
                 // PIN is blocked.
                 return false;
+            case ISO7816.SW_WRONG_LENGTH:
+                // PIN length is invalid
+                return false;
             case ISO7816.SW_FUNC_NOT_SUPPORTED:
                 throw new UnsupportedOperationException();
             case ISO7816.SW_INCORRECT_P1P2:

@@ -56,12 +56,12 @@ interface ISmartcardServiceSession {
      * Logical channels cannot be opened with this connection.
      * Use interface method openLogicalChannel() to open a logical channel.
      */
-    ISmartcardServiceChannel openBasicChannel(in byte[] aid, ISmartcardServiceCallback callback, out SmartcardError error);
+    ISmartcardServiceChannel openBasicChannel(in byte[] aid, in byte p2, ISmartcardServiceCallback callback, out SmartcardError error);
 
     /**
      * Opens a connection using the next free logical channel of the card in the
      * specified reader. Selects the specified applet.
      * Selection of other applets with this connection is not supported.
      */
-    ISmartcardServiceChannel openLogicalChannel(in byte[] aid, ISmartcardServiceCallback callback, out SmartcardError error);
+    ISmartcardServiceChannel openLogicalChannel(in byte[] aid, in byte p2,ISmartcardServiceCallback callback, out SmartcardError error);
 }

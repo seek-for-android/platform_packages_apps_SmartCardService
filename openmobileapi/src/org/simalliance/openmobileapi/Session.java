@@ -200,6 +200,7 @@ public class Session {
                 SmartcardError error = new SmartcardError();
                 ISmartcardServiceChannel channel = mSession.openBasicChannel(
                         aid,
+                        P2,
                         mReader.getSEService().getCallback(),
                         error);
                 if (error.isSet()) {
@@ -286,6 +287,7 @@ public class Session {
                 SmartcardError error = new SmartcardError();
                 ISmartcardServiceChannel channel = mSession.openLogicalChannel(
                         aid,
+                        P2,
                         mReader.getSEService().getCallback(),
                         error);
                 if (error.isSet()) {

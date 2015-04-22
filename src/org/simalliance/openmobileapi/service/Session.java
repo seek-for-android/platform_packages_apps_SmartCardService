@@ -338,6 +338,7 @@ public class Session {
         @Override
         public ISmartcardServiceChannel openBasicChannel(
                 byte[] aid,
+                byte p2,
                 ISmartcardServiceCallback callback,
                 SmartcardError error) throws RemoteException {
             try {
@@ -352,6 +353,7 @@ public class Session {
         @Override
         public ISmartcardServiceChannel openLogicalChannel(
                 byte[] aid,
+                byte p2,
                 ISmartcardServiceCallback callback,
                 SmartcardError error) throws RemoteException {
             try {

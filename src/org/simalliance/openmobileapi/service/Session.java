@@ -86,6 +86,7 @@ public class Session {
 
     public ISmartcardServiceChannel openBasicChannel(
             byte[] aid,
+            byte p2,
             ISmartcardServiceCallback callback) throws Exception {
 
         if (isClosed()) {
@@ -136,7 +137,7 @@ public class Session {
             selectCommand[0] = 0x00;
             selectCommand[1] = (byte) 0xA4;
             selectCommand[2] = 0x04;
-            selectCommand[3] = 0x00;
+            selectCommand[3] = p2;
             selectCommand[4] = (byte) aid.length;
             System.arraycopy(aid, 0, selectCommand, 5, aid.length);
             byte[] selectResponse;
@@ -342,7 +343,7 @@ public class Session {
                 ISmartcardServiceCallback callback,
                 SmartcardError error) throws RemoteException {
             try {
-                return Session.this.openBasicChannel(aid, callback);
+                return Session.this.openBasicChannel(aid, p2, callback);
             } catch (Exception e) {
                 Log.e(SmartcardService.LOG_TAG, "Error during openBasicChannel()", e);
                 error.set(e);

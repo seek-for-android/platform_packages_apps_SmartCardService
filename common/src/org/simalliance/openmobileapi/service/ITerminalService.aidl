@@ -43,7 +43,7 @@ interface ITerminalService {
      *
      * @throws Exception If the channel could not be opened.
      */
-    OpenLogicalChannelResponse internalOpenLogicalChannel(in byte[] aid, out SmartcardError error);
+    OpenLogicalChannelResponse internalOpenLogicalChannel(in byte[] aid, in byte p2, out SmartcardError error);
 
     /**
      * Implementation of the MANAGE CHANNEL close command.

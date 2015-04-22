@@ -259,9 +259,9 @@ public class Terminal {
      *
      * @throws Exception If the channel could not be opened.
      */
-    public OpenLogicalChannelResponse internalOpenLogicalChannel(byte[] aid) throws Exception {
+    public OpenLogicalChannelResponse internalOpenLogicalChannel(byte[] aid, byte p2) throws Exception {
         SmartcardError error = new SmartcardError();
-        OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(aid, error);
+        OpenLogicalChannelResponse response = mTerminalService.internalOpenLogicalChannel(aid, p2, error);
         if (error.isSet()) {
             error.throwException();
         }

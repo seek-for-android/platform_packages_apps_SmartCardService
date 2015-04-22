@@ -163,6 +163,7 @@ public class Session {
 
     public ISmartcardServiceChannel openLogicalChannel(
             byte[] aid,
+            byte p2,
             ISmartcardServiceCallback callback) throws Exception {
 
         if (isClosed()) {
@@ -203,7 +204,7 @@ public class Session {
 
         OpenLogicalChannelResponse rsp;
         synchronized (this) {
-            rsp = mReader.internalOpenLogicalChannel(aid);
+            rsp = mReader.internalOpenLogicalChannel(aid, p2);
         }
 
         if (rsp == null) {
@@ -358,7 +359,7 @@ public class Session {
                 ISmartcardServiceCallback callback,
                 SmartcardError error) throws RemoteException {
             try {
-                return Session.this.openLogicalChannel(aid, callback);
+                return Session.this.openLogicalChannel(aid, p2, callback);
             } catch (Exception e) {
                 Log.e(SmartcardService.LOG_TAG, "Error during openLogicalChannel()", e);
                 error.set(e);

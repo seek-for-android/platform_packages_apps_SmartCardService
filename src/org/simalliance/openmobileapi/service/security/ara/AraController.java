@@ -189,7 +189,7 @@ public class AraController {
     }
     
     private Channel openChannel(Terminal terminal, byte[] aid, ISmartcardServiceCallback callback) throws Exception {
-        OpenLogicalChannelResponse rsp = terminal.internalOpenLogicalChannel(aid);
+        OpenLogicalChannelResponse rsp = terminal.internalOpenLogicalChannel(aid, (byte) 0x00);
         Channel channel = new Channel(null, rsp.getChannel(), rsp.getSelectResponse(), callback);
 
         // set access conditions to access ARA-M.

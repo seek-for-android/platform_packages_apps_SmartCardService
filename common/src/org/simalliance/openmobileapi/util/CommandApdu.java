@@ -50,11 +50,6 @@ public class CommandApdu {
     private byte[] mData;
 
     /**
-     * Lc field of command APDU.
-     */
-    private Integer mLc;
-
-    /**
      * Le field of command APDU.
      */
     private Integer mLe;
@@ -137,7 +132,7 @@ public class CommandApdu {
      */
     public CommandApdu(
             byte cla, byte ins, byte p1, byte p2, byte[] data, int le)
-            throws IllegalArgumentException {
+                    throws IllegalArgumentException {
         setCla(cla);
         setIns(ins);
         setP1(p1);
@@ -158,7 +153,7 @@ public class CommandApdu {
             throws IllegalArgumentException {
         if (cmdApduAsByteArray.length < ISO7816.CMD_APDU_LENGTH_CASE1) {
             throw new IllegalArgumentException("Invalid length for command ("
-                    + cmdApduAsByteArray.length + ").");
+                + cmdApduAsByteArray.length + ").");
         }
 
         setCla(cmdApduAsByteArray[ISO7816.OFFSET_CLA]);
@@ -171,38 +166,89 @@ public class CommandApdu {
         } else if (cmdApduAsByteArray.length == ISO7816.CMD_APDU_LENGTH_CASE2) {
             // Case 2 APDU
             setLe((int) 0x0FF & cmdApduAsByteArray[ISO7816.OFFSET_P3]);
-        } else {
+        } else if (cmdApduAsByteArray[ISO7816.OFFSET_P3] != (byte) 0x00) {
             // Case 3 or Case 4 APDU
 
             // Get Lc and check that it's not 0
-            setLc((int) 0x0FF & cmdApduAsByteArray[ISO7816.OFFSET_P3]);
-            if (mLc == 0) {
+            int lc = ((int) 0x0FF & cmdApduAsByteArray[ISO7816.OFFSET_P3]);
+            if (lc == 0) {
                 throw new IllegalArgumentException(
                         "Lc can't be 0");
             }
 
             if (cmdApduAsByteArray.length
-                    == ISO7816.CMD_APDU_LENGTH_CASE3_WITHOUT_DATA + mLc) {
+                    == ISO7816.CMD_APDU_LENGTH_CASE3_WITHOUT_DATA + lc) {
                 // Case 3 APDU -- nothing to be done here
             } else if (cmdApduAsByteArray.length
-                    == ISO7816.CMD_APDU_LENGTH_CASE4_WITHOUT_DATA + mLc) {
+                    == ISO7816.CMD_APDU_LENGTH_CASE4_WITHOUT_DATA + lc) {
                 // Case 4 APDU -- get Le:
                 setLe((int) 0x0FF
                         & cmdApduAsByteArray[cmdApduAsByteArray.length - 1]);
             } else {
                 // Lc has a wrong value!
                 throw new IllegalArgumentException(
-                        "Unexpected value of Lc (" + mLc + ")");
+                        "Unexpected value of Lc (" + lc + ")");
             }
 
             // Store the data
-            mData = new byte[mLc];
+            mData = new byte[lc];
             System.arraycopy(
-                    cmdApduAsByteArray,
-                    ISO7816.OFFSET_DATA,
-                    mData,
-                    0,
-                    mLc);
+                        cmdApduAsByteArray,
+                        ISO7816.OFFSET_DATA,
+                        mData,
+                        0,
+                        lc);
+        } else  if (cmdApduAsByteArray.length
+                == ISO7816.CMD_APDU_LENGTH_CASE2_EXTENDED) {
+            // Case 2 extended APDU
+            setLe((((int) 0x0FF
+                    & cmdApduAsByteArray[ISO7816.OFFSET_DATA]) << 8)
+                    + ((int) 0x0FF
+                            & cmdApduAsByteArray[ISO7816.OFFSET_DATA + 1]));
+        } else {
+            // Case 3 or Case 4 APDU
+
+            if (cmdApduAsByteArray.length <= ISO7816.OFFSET_DATA_EXTENDED) {
+                throw new IllegalArgumentException(
+                        "Unexpected value of Lc or Le" + cmdApduAsByteArray.length);
+            }
+            // Get Lc and check that it's not 0
+            int lc = (((int) 0x0FF
+                    & cmdApduAsByteArray[ISO7816.OFFSET_DATA]) << 8)
+                    + ((int) 0x0FF
+                            & cmdApduAsByteArray[ISO7816.OFFSET_DATA + 1]);
+            if (lc == 0) {
+                throw new IllegalArgumentException(
+                        "Lc can't be 0");
+            }
+
+            if (cmdApduAsByteArray.length
+                    == ISO7816.CMD_APDU_LENGTH_CASE3_WITHOUT_DATA_EXTENDED
+                    + lc) {
+                // Case 3 APDU -- nothing to be done here
+            } else if (cmdApduAsByteArray.length
+                    == ISO7816.CMD_APDU_LENGTH_CASE4_WITHOUT_DATA_EXTENDED
+                    + lc) {
+                // Case 4 APDU -- get Le:
+                setLe((((int) 0x0FF
+                        & cmdApduAsByteArray[cmdApduAsByteArray.length - 2])
+                        << 8)
+                        + ((int) 0x0FF
+                        & cmdApduAsByteArray[cmdApduAsByteArray.length - 1]));
+            } else {
+                // Lc has a wrong value!
+                throw new IllegalArgumentException(
+                        "Unexpected value of Lc (" + lc + ")--- 9 -" + cmdApduAsByteArray.length);
+            }
+
+            // Store the data
+            mData = new byte[lc];
+            System.arraycopy(
+                        cmdApduAsByteArray,
+                        ISO7816.OFFSET_DATA_EXTENDED,
+                        mData,
+                        0,
+                        lc);
         }
     }
 
@@ -213,44 +259,100 @@ public class CommandApdu {
      */
     public byte[] toByteArray() {
         byte[] array;
-        if (mData == null && mLe == null) {
-            // APDU Case 1
-            array = new byte[ISO7816.CMD_APDU_LENGTH_CASE1];
-            array[ISO7816.OFFSET_CLA] = mCla;
-            array[ISO7816.OFFSET_INS] = mIns;
-            array[ISO7816.OFFSET_P1] = mP1;
-            array[ISO7816.OFFSET_P2] = mP2;
-        } else if (mData == null && mLe != null) {
-            // APDU Case 2
-            array = new byte[ISO7816.CMD_APDU_LENGTH_CASE2];
-            array[ISO7816.OFFSET_CLA] = mCla;
-            array[ISO7816.OFFSET_INS] = mIns;
-            array[ISO7816.OFFSET_P1] = mP1;
-            array[ISO7816.OFFSET_P2] = mP2;
-            array[ISO7816.OFFSET_P3] = (byte) (mLe & 0x0FF);
-        } else if (mData != null && mLe == null) {
-            // APDU Case 3
-            array = new byte[ISO7816.CMD_APDU_LENGTH_CASE3_WITHOUT_DATA + mLc];
-            array[ISO7816.OFFSET_CLA] = mCla;
-            array[ISO7816.OFFSET_INS] = mIns;
-            array[ISO7816.OFFSET_P1] = mP1;
-            array[ISO7816.OFFSET_P2] = mP2;
-            array[ISO7816.OFFSET_P3] = (byte) (mLc & 0x0FF);
-            System.arraycopy(
-                    mData, 0, array, ISO7816.OFFSET_DATA, mData.length);
-        } else {
-            // APDU Case 4
-            array = new byte[ISO7816.CMD_APDU_LENGTH_CASE4_WITHOUT_DATA + mLc];
-            array[ISO7816.OFFSET_CLA] = mCla;
-            array[ISO7816.OFFSET_INS] = mIns;
-            array[ISO7816.OFFSET_P1] = mP1;
-            array[ISO7816.OFFSET_P2] = mP2;
-            array[ISO7816.OFFSET_P3] = (byte) (mLc & 0x0FF);
-            System.arraycopy(
-                    mData, 0, array, ISO7816.OFFSET_DATA, mData.length);
-            array[array.length - 1] = (byte) (mLe & 0x0FF);
-        }
+        if (!isExtendedLength()) {
+            if (mData == null && mLe == null) {
+                // APDU Case 1
+                array = new byte[ISO7816.CMD_APDU_LENGTH_CASE1];
+                array[ISO7816.OFFSET_CLA] = mCla;
+                array[ISO7816.OFFSET_INS] = mIns;
+                array[ISO7816.OFFSET_P1] = mP1;
+                array[ISO7816.OFFSET_P2] = mP2;
+            } else if (mData == null && mLe != null) {
+                // APDU Case 2
+                array = new byte[ISO7816.CMD_APDU_LENGTH_CASE2];
+                array[ISO7816.OFFSET_CLA] = mCla;
+                array[ISO7816.OFFSET_INS] = mIns;
+                array[ISO7816.OFFSET_P1] = mP1;
+                array[ISO7816.OFFSET_P2] = mP2;
+                array[ISO7816.OFFSET_P3] = (byte) (mLe & 0x0FF);
+            } else if (mData != null && mLe == null) {
+                // APDU Case 3
+                array = new byte[ISO7816.CMD_APDU_LENGTH_CASE3_WITHOUT_DATA
+                                 + mData.length];
+                array[ISO7816.OFFSET_CLA] = mCla;
+                array[ISO7816.OFFSET_INS] = mIns;
+                array[ISO7816.OFFSET_P1] = mP1;
+                array[ISO7816.OFFSET_P2] = mP2;
+                array[ISO7816.OFFSET_P3] = (byte) (mData.length & 0x0FF);
+                System.arraycopy(
+                        mData, 0, array, ISO7816.OFFSET_DATA, mData.length);
+            } else {
+                // APDU Case 4
+                array = new byte[ISO7816.CMD_APDU_LENGTH_CASE4_WITHOUT_DATA
+                                 + mData.length];
+                array[ISO7816.OFFSET_CLA] = mCla;
+                array[ISO7816.OFFSET_INS] = mIns;
+                array[ISO7816.OFFSET_P1] = mP1;
+                array[ISO7816.OFFSET_P2] = mP2;
+                array[ISO7816.OFFSET_P3] = (byte) (mData.length & 0x0FF);
+                System.arraycopy(
+                        mData, 0, array, ISO7816.OFFSET_DATA, mData.length);
+                array[array.length - 1] = (byte) (mLe & 0x0FF);
+            }
 
+        } else {
+            if (mData == null && mLe != null) {
+                // APDU Case 2
+                array = new byte[ISO7816.CMD_APDU_LENGTH_CASE2_EXTENDED];
+                array[ISO7816.OFFSET_CLA] = mCla;
+                array[ISO7816.OFFSET_INS] = mIns;
+                array[ISO7816.OFFSET_P1] = mP1;
+                array[ISO7816.OFFSET_P2] = mP2;
+                array[ISO7816.OFFSET_P3] = (byte) 0x00;
+                array[ISO7816.OFFSET_DATA] = (byte) ((mLe >> 8) & 0x0FF);
+                array[ISO7816.OFFSET_DATA + 1] = (byte) (mLe & 0x0FF);
+            } else if (mData != null && mLe == null) {
+                // APDU Case 3
+                array = new byte[ISO7816.
+                                 CMD_APDU_LENGTH_CASE3_WITHOUT_DATA_EXTENDED
+                                 + mData.length];
+                array[ISO7816.OFFSET_CLA] = mCla;
+                array[ISO7816.OFFSET_INS] = mIns;
+                array[ISO7816.OFFSET_P1] = mP1;
+                array[ISO7816.OFFSET_P2] = mP2;
+                array[ISO7816.OFFSET_P3] = (byte) 0x00;
+                array[ISO7816.OFFSET_DATA] = (byte) ((mData.length >> 8)
+                        & 0x0FF);
+                array[ISO7816.OFFSET_DATA + 1] = (byte) (mData.length & 0x0FF);
+                System.arraycopy(
+                        mData,
+                        0,
+                        array,
+                        ISO7816.OFFSET_DATA_EXTENDED,
+                        mData.length);
+            } else {
+                // APDU Case 4
+                array = new byte[ISO7816.
+                                 CMD_APDU_LENGTH_CASE4_WITHOUT_DATA_EXTENDED
+                                 + mData.length];
+                array[ISO7816.OFFSET_CLA] = mCla;
+                array[ISO7816.OFFSET_INS] = mIns;
+                array[ISO7816.OFFSET_P1] = mP1;
+                array[ISO7816.OFFSET_P2] = mP2;
+                array[ISO7816.OFFSET_P3] = (byte) 0x00;
+                array[ISO7816.OFFSET_DATA] = (byte) ((mData.length >> 8)
+                        & 0x0FF);
+                array[ISO7816.OFFSET_DATA + 1] = (byte) (mData.length & 0x0FF);
+                System.arraycopy(
+                        mData,
+                        0,
+                        array,
+                        ISO7816.OFFSET_DATA_EXTENDED,
+                        mData.length);
+                array[array.length - 2] = (byte) ((mLe >> 8) & 0x0FF);
+                array[array.length - 1] = (byte) (mLe & 0x0FF);
+            }
+        }
         return array;
     }
 
@@ -307,15 +409,6 @@ public class CommandApdu {
     }
 
     /**
-     * Private method - Set LC byte.
-     *
-     * @param lc Value of LC field.
-     */
-    private void setLc(int lc) {
-        mLc = lc;
-    }
-
-    /**
      * Private method Set Data.
      *
      * @param data Value of APDU data.
@@ -337,8 +430,6 @@ public class CommandApdu {
                     "Data must not be empty.");
         }
 
-        setLc(data.length);
-
         mData = new byte[data.length];
         System.arraycopy(data, 0, mData, 0, data.length);
     }
@@ -357,5 +448,20 @@ public class CommandApdu {
                     "Invalid value for le parameter (" + le + ").");
         }
         mLe = le;
+    }
+
+    /**
+     * Check if the Apdu is extended.
+     *
+     * @return true if Apdu is extended or false otherwise.
+     */
+    public boolean isExtendedLength() {
+        if ((mLe != null && mLe > ISO7816.MAX_RESPONSE_DATA_LENGTH_NO_EXTENDED)
+                || (mData != null
+                && mData.length
+                > ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED)) {
+            return true;
+        }
+        return false;
     }
 }

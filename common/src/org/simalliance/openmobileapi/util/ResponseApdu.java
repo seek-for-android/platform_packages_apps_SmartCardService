@@ -55,7 +55,7 @@ public class ResponseApdu {
         }
         mSw = new byte[ISO7816.RESP_APDU_LENGTH_SW];
         System.arraycopy(response, response.length
-                        - ISO7816.RESP_APDU_LENGTH_SW, mSw, 0,
+                - ISO7816.RESP_APDU_LENGTH_SW, mSw, 0,
                 ISO7816.RESP_APDU_LENGTH_SW);
     }
 
@@ -122,3 +122,4 @@ public class ResponseApdu {
         return (int) 0x0FF & mSw[1];
     }
 }
+

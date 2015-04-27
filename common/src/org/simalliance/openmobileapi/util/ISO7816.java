@@ -10,12 +10,22 @@ public class ISO7816 {
     /**
      * Maximum command APDU data length.
      */
-    public static final int MAX_COMMAND_DATA_LENGTH = 255;
+    public static final int MAX_COMMAND_DATA_LENGTH = 65535;
 
     /**
      * Maximum response APDU data  length.
      */
-    public static final int MAX_RESPONSE_DATA_LENGTH = 256;
+    public static final int MAX_RESPONSE_DATA_LENGTH = 65536;
+
+    /**
+     * Maximum command APDU data length.
+     */
+    public static final int MAX_COMMAND_DATA_LENGTH_NO_EXTENDED = 255;
+
+    /**
+     * Maximum response APDU data  length.
+     */
+    public static final int MAX_RESPONSE_DATA_LENGTH_NO_EXTENDED = 256;
 
     /**
      * Length of an APDU Case 1.
@@ -28,14 +38,29 @@ public class ISO7816 {
     public static final int CMD_APDU_LENGTH_CASE2 = 5;
 
     /**
+     * Length of an APDU Case 2 extended case.
+     */
+    public static final int CMD_APDU_LENGTH_CASE2_EXTENDED = 7;
+
+    /**
      * Length of an APDU Case 3 without taking data into account.
      */
     public static final int CMD_APDU_LENGTH_CASE3_WITHOUT_DATA = 5;
 
     /**
+     * Length of an APDU Case 3 extended without taking data into account.
+     */
+    public static final int CMD_APDU_LENGTH_CASE3_WITHOUT_DATA_EXTENDED = 7;
+
+    /**
      * Length of an APDU Case 4 without taking data into account.
      */
     public static final int CMD_APDU_LENGTH_CASE4_WITHOUT_DATA = 6;
+
+    /**
+     * Length of an APDU Case 4 extended without taking data into account.
+     */
+    public static final int CMD_APDU_LENGTH_CASE4_WITHOUT_DATA_EXTENDED = 9;
 
     /**
      * Length of an status word.
@@ -68,6 +93,11 @@ public class ISO7816 {
      * Data offset in Command APDU.
      */
     public static final int OFFSET_DATA = 5;
+
+    /**
+     * Data offset in Command APDU.
+     */
+    public static final int OFFSET_DATA_EXTENDED = 7;
 
     // CLA values.
 

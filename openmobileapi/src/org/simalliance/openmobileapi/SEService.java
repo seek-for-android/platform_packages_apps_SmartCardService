@@ -42,7 +42,7 @@ import android.util.Log;
  * device. This is the entry point of this API. It is used to connect to the
  * infrastructure and get access to a list of Secure Element Readers.
  *
- * @see <a href="http://simalliance.org">SIMalliance Open Mobile API v2.02</a>
+ * @see <a href="http://simalliance.org">SIMalliance Open Mobile API v3.0</a>
  */
 public class SEService {
 
@@ -154,14 +154,16 @@ public class SEService {
     }
 
     /**
-     * Returns the list of available Secure Element readers. More precisely it
-     * returns the list of readers that the calling application has the
-     * permission to connect to.
+     * Returns the list of available Secure Element readers.
+     * There must be no duplicated objects in the returned list.
+     * All available readers shall be listed even if no card is inserted.
      *
-     * @return The readers list, as an array of Readers. If there are no readers
-     *         the returned array is of length 0.
+     * @throws NullPointerException if context is NULL
+     * @throws IllegalStateException if the SEService object is not connected
+     * @return The readers list, as an array of Readers.
+     * If there are no readers the returned array is of length 0.
      */
-    public Reader[] getReaders() {
+    public Reader[] getReaders() throws IllegalStateException, NullPointerException {
         if (mSmartcardService == null) {
             throw new IllegalStateException("service not connected to system");
         }
@@ -174,10 +176,12 @@ public class SEService {
     }
 
     /**
-     * Releases all Secure Elements resources allocated by this SEService. It is
-     * recommended to call this method in the termination method of the calling
-     * application (or part of this application) which is bound to this
-     * SEService. The SEService becomes invalid after calling shutdown().
+     * Releases all Secure Elements resources allocated by this SEService
+     * (including any binding to an underlying service).
+     * As a result isConnected() will return false after shutdown() was called.
+     * After this method call, the SEService object is not connected.
+     * It is recommended to call this method in the termination method of the calling application
+     * (or part of this application) which is bound to this SEService.
      */
     public void shutdown() {
         synchronized (mLock) {
@@ -203,7 +207,7 @@ public class SEService {
      * Returns the version of the OpenMobile API specification this
      * implementation is based on.
      *
-     * @return Version String.
+     * @return String containing the OpenMobile API version (e.g. "3.0").
      */
     public String getVersion() {
         return "3.0";

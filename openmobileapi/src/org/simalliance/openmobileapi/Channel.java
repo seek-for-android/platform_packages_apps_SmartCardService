@@ -28,13 +28,13 @@ import android.os.RemoteException;
 import android.util.Log;
 
 /**
- * Instances of this class represent an ISO7816-4 channel opened to a secure
- * element. It can be either a logical channel or the default channel. They can
+ * Instances of this class represent an ISO/ICE 7816-4 channel opened to a Secure
+ * Element. It can be either a logical channel or the basic channel. They can
  * be used to send APDUs to the secure element. Channels are opened by calling
  * the Session.openBasicChannel(byte[]) or Session.openLogicalChannel(byte[])
  * methods.
  * 
- * @see <a href="http://simalliance.org">SIMalliance Open Mobile API  v2.02</a>
+ * @see <a href="http://simalliance.org">SIMalliance Open Mobile API  v3.0</a>
  */
 public class Channel {
 
@@ -120,37 +120,56 @@ public class Channel {
     }
 
     /**
-     * Transmit an APDU command (as per ISO7816-4) to the secure element and
-     * wait for the response. The underlying layers might generate as much TPDUs
-     * as necessary to transport this APDU. The transport part is invisible from
-     * the application. <br>
-     * The system ensures the synchronization between all the concurrent calls
-     * to this method, and that only one APDU will be sent at a time,
-     * irrespective of the number of TPDUs that might be required to transport
-     * it to the SE. <br>
-     * The channel information in the class byte in the APDU will be completely
-     * ignored. The underlying system will add any required information to
-     * ensure the APDU is transported on this channel. There are restrictions on
-     * the set of commands that can be sent: <br>
-     * 
-     * <ul> 
-     * <li>MANAGE_CHANNEL commands are not allowed.</li> 
+     * Transmit an APDU command (as per ISO/IEC 7816-4) to the Secure Element. The
+     * underlying layers generate as many TPDUs as necessary to transport this APDU. The
+     * API shall ensure that all available data returned from Secure Element, including
+     * concatenated responses, are retrieved and made available to the calling application. If a
+     * warning status code is received the API wont check for further response data but will
+     * return all data received so far and the warning status code.<br>
+     * The transport part is invisible from the application. The generated response is the
+     * response of the APDU which means that all protocols related responses are handled
+     * inside the API or the underlying implementation.<br>
+     * The transmit method shall support extended length APDU commands independently of
+     * the coding within the ATR.<br>
+     * For status word ’61 XX’ the API or underlying implementation shall issue a GET
+     * RESPONSE command as specified by ISO 7816-4 standard with LE=XX; for the status
+     * word ‘6C XX’, the API or underlying implementation shall reissue the input command
+     * with LE=XX. For other status words, the API (or underlying implementation) shall return
+     * the complete response including data and status word to the device application. The API
+     * (or underlying implementation) shall not handle internally the received status words. The
+     * channel shall not be closed even if the Secure Element answered with an error code.
+     * The system ensures the synchronization between all the concurrent calls to this method,
+     * and that only one APDU will be sent at a time, irrespective of the number of TPDUs that
+     * might be required to transport it to the SE. The entire APDU communication to this SE is
+     * locked to the APDU.<br>
+     * The channel information in the class byte in the APDU will be ignored. The system will
+     * add any required information to ensure the APDU is transported on this channel.
+     * The only restrictions on the set of commands that can be sent is defined below, the API
+     * implementation shall be able to send all other commands: <br>
+     * <ul>
+     * <li>MANAGE_CHANNEL commands are not allowed.</li>
      * <li>SELECT by DF Name (p1=04) are not allowed.</li>
-     * <li>CLA bytes with channel numbers are de-masked.</li> 
+     * <li>CLA bytes with channel numbers are de-masked.</li>
      * </ul>
      * 
      * @param command the APDU command to be transmitted, as a byte array.
      * 
-     * @return the response received, as a byte array.
+     * @return the response received, as a byte array. The returned byte array contains the data bytes
+     * in the following order:
+     * [&lt;first data byte&gt;, ..., &lt;last data byte&gt;, &lt;sw1&gt;, &lt;sw2&gt;]
      * 
      * @throws IOException if there is a communication problem to the reader or the Secure Element.
      * @throws IllegalStateException if the channel is used after being closed.
      * @throws IllegalArgumentException if the command byte array is less than 4 bytes long.
-     * @throws IllegalArgumentException if the length of the APDU is not coherent with the length of the command byte array.
+     * @throws IllegalArgumentException if Lc byte is inconsistent with the length of the byte array.
+     * @throws IllegalArgumentException if CLA byte is invalid according to [2] (0xff).
+     * @throws IllegalArgumentException if INS byte is invalid according to [2] (0x6x or 0x9x).
      * @throws SecurityException if the command is filtered by the security
-     *             policy
+     *             policy.
+     * @throws NullPointerException if command is NULL.
      */
-    public byte[] transmit(byte[] command) throws IOException {
+    public byte[] transmit(byte[] command) throws IOException, IllegalStateException,
+            IllegalArgumentException, SecurityException, NullPointerException {
         if (mSession.getReader().getSEService() == null
                 || !mSession.getReader().getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");
@@ -185,7 +204,8 @@ public class Channel {
     }    
     
     /**
-     * Returns the data as received from the application select command inclusively the status word.
+     * Returns the data as received from the application select command inclusively the status word
+     * received at applet selection.
      * The returned byte array contains the data bytes in the following order:
      * [&lt;first data byte&gt;, ..., &lt;last data byte&gt;, &lt;sw1&gt;, &lt;sw2&gt;]
      * @return The data as returned by the application select command inclusively the status word.
@@ -216,17 +236,26 @@ public class Channel {
      * matching to the same partial AID. 
      * If selectNext() returns true a new Applet was successfully selected on this channel. 
      * If no further Applet exists with matches to the partial AID this method returns false
-     * and the already selected Applet stays selected.
+     * and the already selected Applet stays selected. <br>
      *
-     * @return <code>true</code> if new Applet was successfully selected.
-               <code>false</code> if no further Applet exists which matches the partial AID.
+     * Since the API cannot distinguish between a partial and full AID the API shall rely on the
+     * response of the Secure Element for the return value of this method. <br>
+     * The implementation of the underlying SELECT command within this method shall use
+     * the same values as the corresponding openBasicChannel(byte[] aid) or
+     * openLogicalChannel(byte[] aid) command with the option: <br>
+     * P2=’02’ (Next occurrence) <br>
+     * The select response stored in the Channel object shall be updated with the APDU
+     * response of the SELECT command.
+
+     * @return <code>true</code> if new Applet was selected on this channel.
+               <code>false</code> he already selected Applet stays selected on this channel.
      *
      * @throws IOException if there is a communication problem to the reader or the Secure Element.
-     * @throws IllegalStateException if the channel is used after being closed or it is not connected.
-     * @throws SecurityException if the command is filtered by the security policy
-     * @throws UnsupportedOperationException if selectNext is not supported by Secure Element.
+     * @throws IllegalStateException if the channel is used after being closed.
+     * @throws UnsupportedOperationException if this operation is not supported by the card.
      */
-    public boolean selectNext() throws IOException {
+    public boolean selectNext() throws IOException, IllegalStateException,
+            UnsupportedOperationException {
         if (mSession.getReader().getSEService() == null
                 || !mSession.getReader().getSEService().isConnected()) {
             throw new IllegalStateException("service not connected to system");

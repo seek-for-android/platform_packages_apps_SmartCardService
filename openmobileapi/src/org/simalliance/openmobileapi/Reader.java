@@ -26,12 +26,12 @@ import org.simalliance.openmobileapi.service.SmartcardError;
 import android.os.RemoteException;
 
 /**
- * Instances of this class represent Secure Element Readers connected to this
+ * Instances of this class represent Secure Element Readers supported to this
  * device. These Readers can be physical devices or virtual devices. They can be
  * removable or not. They can contain Secure Element that can or cannot be
  * removed.
  * 
- * @see <a href="http://simalliance.org">SIMalliance Open Mobile API  v2.02</a>
+ * @see <a href="http://simalliance.org">SIMalliance Open Mobile API  v3.0</a>
  */
 public class Reader {
 
@@ -49,21 +49,28 @@ public class Reader {
     }
 
     /**
-     * Return the user-friendly name of this reader.
+     * Return the name of this reader.
      * <ul>
-     * <li>If this reader is a SIM reader, then its name must start with the "SIM" prefix.</li>
-     * <li>If the reader is a SD or micro SD reader, then its name must start with the "SD" prefix</li>
-     * <li>If the reader is a embedded SE reader, then its name must start with the "eSE" prefix</li>
+     * <li>If this reader is a SIM reader, then its name must be "SIM[Slot]".</li>
+     * <li>If the reader is a SD or micro SD reader, then its name must be "SD[Slot]"</li>
+     * <li>If the reader is a embedded SE reader, then its name must be "eSE[Slot]"</li>
      * <ul>
-     * 
-     * @return name of this Reader
+     * Slot is a decimal number without leading zeros. The Numbering must start with 1
+     * (e.g. SIM1, SIM2, ... or SD1, SD2, ... or eSE1, eSE2, ...).
+     * The slot number “1” for a reader is optional
+     * (SIM and SIM1 are both valid for the first SIM-reader,
+     * but if there are two readers then the second reader must be named SIM2).
+     * This applies also for other SD or SE readers.
+
+     *
+     * @return the reader name, as a String.
      */
     public String getName() {
         return mName;
     }
 
     /**
-     * Connects to a secure element in this reader. <br>
+     * Connects to a Secure Element in this reader. <br>
      * This method prepares (initialises) the Secure Element for communication
      * before the Session object is returned (e.g. powers the Secure Element by
      * ICC ON if its not already on). There might be multiple sessions opened at

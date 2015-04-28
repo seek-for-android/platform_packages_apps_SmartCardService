@@ -26,6 +26,9 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
+import org.simalliance.openmobileapi.util.CommandApdu;
+import org.simalliance.openmobileapi.util.ResponseApdu;
+import org.simalliance.openmobileapi.util.ISO7816;
 
 /**
  * Smartcard service base class for channel resources.
@@ -175,7 +178,51 @@ public class Channel implements IBinder.DeathRecipient {
         // set channel number bits
         command[0] = Util.setChannelToClassByte(command[0], mChannelNumber);
 
-        return mSession.transmit(command, 2, 0, 0, null);
+        CommandApdu cApdu = new CommandApdu(command);
+        if (cApdu.isExtendedLength()
+                && command.length != ISO7816.CMD_APDU_LENGTH_CASE2_EXTENDED) {
+            return transmitExtendedCommand(cApdu.toByteArray());
+        } else {
+            return mSession.transmit(cApdu.toByteArray(), 2, 0, 0, null);
+        }
+    }
+
+    public byte[] transmitExtendedCommand(byte[] command) throws Exception {
+        byte[] envelopeData;
+        byte[] response;
+        int pos = 0;
+        while ((pos +  ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED) < command.length) {
+            envelopeData = new byte[ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED];
+            System.arraycopy(
+                    command, pos, envelopeData, 0, envelopeData.length);
+            mSession.transmit(new CommandApdu(
+                    command[ISO7816.OFFSET_CLA],
+                    (byte) 0xC2,
+                    (byte) 0x00,
+                    (byte) 0x00,
+                    envelopeData).toByteArray(), 2, 0, 0, null);
+            pos += ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED;
+        }
+        // Last request
+        envelopeData = new byte[command.length - pos];
+        if (envelopeData.length != 0) {
+            System.arraycopy(
+                    command, pos, envelopeData, 0, envelopeData.length);
+            mSession.transmit(new CommandApdu(
+                    command[ISO7816.OFFSET_CLA],
+                    (byte) 0xC2,
+                    (byte) 0x00,
+                    (byte) 0x00,
+                    envelopeData).toByteArray(), 2, 0, 0, null);
+        }
+        // Start get data envelope
+        response = mSession.transmit(new CommandApdu(
+                command[ISO7816.OFFSET_CLA],
+                (byte) 0xC2,
+                (byte) 0x00,
+                (byte) 0x00,
+                0).toByteArray(), 2, 0, 0, null);
+        return response;
     }
 
     public boolean selectNext() throws Exception {

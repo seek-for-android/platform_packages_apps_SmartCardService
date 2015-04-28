@@ -54,7 +54,7 @@ public class Reader {
      * <li>If this reader is a SIM reader, then its name must be "SIM[Slot]".</li>
      * <li>If the reader is a SD or micro SD reader, then its name must be "SD[Slot]"</li>
      * <li>If the reader is a embedded SE reader, then its name must be "eSE[Slot]"</li>
-     * <ul>
+     * </ul>
      * Slot is a decimal number without leading zeros. The Numbering must start with 1
      * (e.g. SIM1, SIM2, ... or SD1, SD2, ... or eSE1, eSE2, ...).
      * The slot number “1” for a reader is optional

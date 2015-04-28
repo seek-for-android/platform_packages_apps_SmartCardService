@@ -167,7 +167,7 @@ public class Session {
      * <li>CLA = ‘00’</li>
      * <li>INS = 'A4'</li>
      * <li>P1 = ’04’ (Select by DF name/application identifier)</li>
-     * <ul>
+     * </ul>
      *
      * The select response data can be retrieved with byte[] getSelectResponse().
      * The API shall handle received status word as follow. If the status word indicates that the
@@ -278,7 +278,7 @@ public class Session {
      * <li>CLA = ‘01’ to '03', '40 to 4F'</li>
      * <li>INS = 'A4'</li>
      * <li>P1 = ’04’ (Select by DF name/application identifier)</li>
-     * <ul>
+     * </ul>
      *
      * The select response data can be retrieved with byte[] getSelectResponse().
      * The API shall handle received status word as follow. If the status word indicates that the

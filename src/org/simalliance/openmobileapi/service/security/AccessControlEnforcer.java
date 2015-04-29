@@ -62,6 +62,8 @@ public class AccessControlEnforcer {
     private ChannelAccess mInitialChannelAccess = new ChannelAccess();
     private boolean mFullAccess = false;
 
+    private boolean initialized = false;
+
     protected boolean[] mNfcEventFlags = null;
 
     private final String ACCESS_CONTROL_ENFORCER = "Access Control Enforcer: ";
@@ -205,7 +207,12 @@ public class AccessControlEnforcer {
             Log.i(SmartcardService.LOG_TAG, "Deny any access to:" + mTerminal.getName());
         }
         mRulesRead = status;
+        initialized = true;
         return status;
+    }
+
+    public boolean isInitialized() {
+        return initialized;
     }
 
     public static Certificate decodeCertificate(byte[] certData) throws CertificateException {

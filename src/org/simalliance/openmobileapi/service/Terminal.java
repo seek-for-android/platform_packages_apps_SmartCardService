@@ -163,7 +163,6 @@ public class Terminal {
      * @param reset
      */
     public synchronized boolean initializeAccessControl(boolean reset) {
-        boolean result = true;
         Log.i(SmartcardService.LOG_TAG, "Initializing Access Control");
 
         boolean isCardPresent;
@@ -171,7 +170,6 @@ public class Terminal {
             isCardPresent = isCardPresent();
         } catch (Exception e) {
             isCardPresent = false;
-
         }
 
         if (isCardPresent) {
@@ -182,13 +180,12 @@ public class Terminal {
             if (mAccessControlEnforcer == null) {
                 mAccessControlEnforcer = new AccessControlEnforcer(this);
             }
-            result = mAccessControlEnforcer.initialize(true, new ISmartcardServiceCallback.Stub(){});
+            return mAccessControlEnforcer.initialize(true, new ISmartcardServiceCallback.Stub(){});
         } else {
             Log.i(SmartcardService.LOG_TAG, "NOT initializing Access Control for " + getName()
                     + ": SE not present.");
+            return true;
         }
-
-        return result;
     }
 
     public void onSmartcardServiceShutdown() {
@@ -213,7 +210,9 @@ public class Terminal {
         }
 
         synchronized (mLock) {
-            Terminal.this.initializeAccessControl(false);
+            if(!mAccessControlEnforcer.isInitialized()) {
+                Terminal.this.initializeAccessControl(false);
+            }
             Session session = new Session(this, mContext);
             mSessions.add(session);
             return session.getBinder();

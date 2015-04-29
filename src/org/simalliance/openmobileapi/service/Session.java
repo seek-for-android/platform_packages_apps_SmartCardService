@@ -142,13 +142,15 @@ public class Session {
             System.arraycopy(aid, 0, selectCommand, 5, aid.length);
             byte[] selectResponse;
             try {
-                // TODO: also accept 62XX and 63XX as valid SW
                 selectResponse = transmit(
                         selectCommand, 2, 0x9000, 0xFFFF, "SELECT ON BASIC CHANNEL");
             } catch (Exception exp) {
                 throw new NoSuchElementException(exp.getMessage());
             }
-
+            if (selectResponse[0] != (byte) 0x62 && selectResponse[0] != (byte) 0x63
+                    && (selectResponse[0] != (byte) 0x90 || selectResponse[1] != (byte) 0x00)) {
+               throw new NoSuchElementException("Secure Element cannot be selected");
+            }
             channel = new Channel(this, 0, selectResponse, callback);
             channel.hasSelectedAid(true, aid);
         }

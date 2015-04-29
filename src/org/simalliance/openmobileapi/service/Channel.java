@@ -156,10 +156,6 @@ public class Channel implements IBinder.DeathRecipient {
             throw new SecurityException("Wrong Caller PID.");
         }
 
-        if (command.length < 4) {
-            throw new IllegalArgumentException("Command must not be smaller than 4 bytes");
-        }
-
         if (((command[0] & (byte) 0x80) == 0)
                 && ((byte) (command[0] & (byte) 0x60) != (byte) 0x20)) {
             // ISO command
@@ -173,12 +169,12 @@ public class Channel implements IBinder.DeathRecipient {
             }
         }
 
-        checkCommand(command);
-
         // set channel number bits
         command[0] = Util.setChannelToClassByte(command[0], mChannelNumber);
 
         CommandApdu cApdu = new CommandApdu(command);
+        checkCommand(command);
+
         if (cApdu.isExtendedLength()
                 && command.length != ISO7816.CMD_APDU_LENGTH_CASE2_EXTENDED) {
             return transmitExtendedCommand(cApdu.toByteArray());

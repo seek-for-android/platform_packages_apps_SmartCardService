@@ -156,6 +156,14 @@ public class Channel implements IBinder.DeathRecipient {
             throw new SecurityException("Wrong Caller PID.");
         }
 
+        if (command[0] == (byte)0XFF) {
+            throw new IllegalArgumentException("CLA byte is invalid");
+        }
+
+        if ((command[1] & (byte) 0xF0) == (byte)0x60 || (command[1] & (byte) 0xF0) == (byte)0x90) {
+            throw new IllegalArgumentException("INS byte is invalid");
+        }
+
         if (((command[0] & (byte) 0x80) == 0)
                 && ((byte) (command[0] & (byte) 0x60) != (byte) 0x20)) {
             // ISO command

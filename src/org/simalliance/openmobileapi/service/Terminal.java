@@ -198,8 +198,11 @@ public class Terminal {
         if (mInitialiseTask != null) {
             mInitialiseTask.cancel(true);
         }
-        mInitialiseTask = null;
-        mContext.unregisterReceiver(mSEReceiver);
+        if(mSEReceiver != null) {
+            mInitialiseTask = null;
+            mContext.unregisterReceiver(mSEReceiver);
+        }
+        
         mSEReceiver = null;
         mContext.unbindService(mTerminalConnection);
     }

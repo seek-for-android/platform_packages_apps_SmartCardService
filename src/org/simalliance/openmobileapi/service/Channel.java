@@ -247,7 +247,6 @@ public class Channel implements IBinder.DeathRecipient {
             throw new IllegalArgumentException("No AID given");
         }
 
-        mSelectResponse = null;
         byte[] selectCommand = new byte[5 + mAid.length];
         selectCommand[0] = 0x00;
         selectCommand[1] = (byte) 0xA4;
@@ -259,16 +258,16 @@ public class Channel implements IBinder.DeathRecipient {
         // set channel number bits
         selectCommand[0] = Util.setChannelToClassByte(selectCommand[0], mChannelNumber);
 
-        mSelectResponse = mSession.transmit(selectCommand, 2, 0, 0, "SELECT NEXT");
+        byte[] auxSelectResponse = mSession.transmit(selectCommand, 2, 0, 0, "SELECT NEXT");
 
-        int sw1 = mSelectResponse[mSelectResponse.length - 2] & 0xFF;
-        int sw2 = mSelectResponse[mSelectResponse.length - 1] & 0xFF;
+        int sw1 = auxSelectResponse[auxSelectResponse.length - 2] & 0xFF;
+        int sw2 = auxSelectResponse[auxSelectResponse.length - 1] & 0xFF;
         int sw = (sw1 << 8) | sw2;
         if (((sw & 0xF000) == 0x9000) || ((sw & 0xFF00) == 0x6200)
                 || ((sw & 0xFF00) == 0x6300)){
+            mSelectResponse = auxSelectResponse;
             return true;
         } else if (sw == 0x6A82) {
-            mSelectResponse = null;
             return false;
         } else {
             throw new UnsupportedOperationException("Unsupported operation");

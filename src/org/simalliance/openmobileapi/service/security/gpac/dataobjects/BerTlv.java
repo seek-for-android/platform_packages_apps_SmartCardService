@@ -256,4 +256,9 @@ public class BerTlv {
 		}
 		return equals;
 	}
+
+    @Override
+    public int hashCode() {
+        return 0;
+    }
 }

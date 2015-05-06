@@ -16,6 +16,8 @@
 
 package org.simalliance.openmobileapi;
 
+import android.util.Log;
+
 import java.io.IOException;
 
 import org.simalliance.openmobileapi.internal.ErrorStrings;
@@ -27,6 +29,7 @@ import org.simalliance.openmobileapi.internal.ErrorStrings;
  */
 public class SEDiscovery {
 
+    private static final String LOG_TAG = "SEDiscovery";
     /**
      * The SEService in which to perform the recognition algorithm.
      */
@@ -183,10 +186,10 @@ public class SEDiscovery {
                     }
                 } catch (IOException e) {
                     // If session could not be opened, assume it is not matching
-                    e.printStackTrace();
+                    Log.e(LOG_TAG, "Session could not be opened, assume it is not matching", e);
                 } catch (IllegalArgumentException e) {
                     // If session is null, assume it is not matching
-                    e.printStackTrace();
+                    Log.e(LOG_TAG, "If session is null, assume it is not matching", e);
                 }
             }
         }

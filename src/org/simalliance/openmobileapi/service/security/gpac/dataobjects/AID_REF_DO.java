@@ -181,4 +181,9 @@ public class AID_REF_DO extends BerTlv {
 		}
 		return equals;
 	}
+
+    @Override
+    public int hashCode() {
+        return 0;
+    }
 }

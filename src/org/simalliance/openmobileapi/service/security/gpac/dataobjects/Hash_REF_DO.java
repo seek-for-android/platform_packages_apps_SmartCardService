@@ -164,5 +164,10 @@ public class Hash_REF_DO extends BerTlv {
 			}
 		}
 		return equals;
-	} 
+	}
+
+    @Override
+    public int hashCode() {
+        return 0;
+    }
 }

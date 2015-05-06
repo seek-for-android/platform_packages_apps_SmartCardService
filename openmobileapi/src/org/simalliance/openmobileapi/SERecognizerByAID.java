@@ -16,6 +16,8 @@
 
 package org.simalliance.openmobileapi;
 
+import android.util.Log;
+
 import org.simalliance.openmobileapi.internal.ErrorStrings;
 
 /**
@@ -26,6 +28,7 @@ import org.simalliance.openmobileapi.internal.ErrorStrings;
  */
 public class SERecognizerByAID extends SERecognizer {
 
+    private static final String LOG_TAG = "SERecognizerByAID";
     /**
      * The minimum length of an AID.
      */
@@ -84,7 +87,7 @@ public class SERecognizerByAID extends SERecognizer {
                 return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(LOG_TAG, "Catch general Exception", e);
         }
 
         return false;

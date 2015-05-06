@@ -160,11 +160,11 @@ public final class SmartcardService extends Service {
                 String name = terminalType + getIndexForTerminal(terminalType);
                 Log.d(LOG_TAG, "Adding terminal " + name);
                 mTerminals.put(name, new Terminal(SmartcardService.this, name, info));
-            } catch (Throwable t) {
+            } catch (Exception e) {
                 Log.e(LOG_TAG, Thread.currentThread().getName()
                         + " CreateReaders Error: "
-                        + ((t.getMessage() != null) ? t.getMessage()
-                        : "unknown"));
+                        + ((e.getMessage() != null) ? e.getMessage()
+                        : "unknown"), e);
             }
         }
     }

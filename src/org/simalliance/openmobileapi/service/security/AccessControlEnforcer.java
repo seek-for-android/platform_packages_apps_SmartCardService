@@ -321,9 +321,7 @@ public class AccessControlEnforcer {
 
             channelAccess = getAccessRule(aid, appCerts );
 
-        } catch (Throwable exp) {
-
-
+        } catch (Exception exp) {
             throw new SecurityException(exp.getMessage());
         }
 

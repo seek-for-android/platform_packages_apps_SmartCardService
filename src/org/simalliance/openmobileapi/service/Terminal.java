@@ -288,7 +288,7 @@ public class Terminal {
                 selectCommand[2] = 0x04;
                 selectCommand[3] = 0x00;
                 selectCommand[4] = 0x00;
-                transmit(selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
+                transmit(selectCommand);
             } catch (Exception exp) {
                 // Selection of the default application fails, try with ARA
                 try {
@@ -304,7 +304,7 @@ public class Terminal {
                         selectCommand[4] = (byte) aid.length;
                         System.arraycopy(aid, 0, selectCommand, 5, aid.length);
                         // TODO: also accept 62XX and 63XX as valid SW
-                        transmit(selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
+                        transmit(selectCommand);
                     }
                 } catch (NoSuchElementException exp2) {
                     // Access Control Applet not available => Don't care
@@ -394,6 +394,7 @@ public class Terminal {
      *            purposes. May be <code>null</code>.
      * @return the response received.
      */
+    @Deprecated
     public synchronized byte[] transmit(
             byte[] cmd,
             int minRspLength,
@@ -449,6 +450,74 @@ public class Terminal {
             mDefaultApplicationSelectedOnBasicChannel = false;
         }
         return rsp;
+    }
+
+    /**
+     * Transmits the specified command and returns the response. If response is SW 61XX, sends a GET
+     * RESPONSE. If response is SW 6C XX, resends the command with the appropriate Le.
+     *
+     * @param cmd the command APDU to be transmitted.
+     *
+     * @return the response received.
+     */
+    public synchronized byte[] transmit(byte[] cmd) throws Exception {
+
+        byte[] rsp = internalTransmit(cmd);
+        if (rsp.length < 2) {
+            throw new IOException("Unexpected response length");
+        }
+
+        int sw1 = rsp[rsp.length - 2] & 0xFF;
+        int sw2 = rsp[rsp.length - 1] & 0xFF;
+        if (sw1 == 0x6C) {
+            cmd[cmd.length - 1] = rsp[rsp.length - 1];
+            rsp = internalTransmit(cmd);
+        } else if (sw1 == 0x61) {
+            do {
+                byte[] getResponseCmd = new byte[]{
+                        cmd[0], (byte) 0xC0, 0x00, 0x00, (byte) sw2
+                };
+                byte[] tmp = internalTransmit(getResponseCmd);
+                byte[] aux = rsp;
+                rsp = new byte[aux.length + tmp.length - 2];
+                System.arraycopy(aux, 0, rsp, 0, aux.length - 2);
+                System.arraycopy(tmp, 0, rsp, aux.length - 2, tmp.length);
+                sw1 = rsp[rsp.length - 2] & 0xFF;
+                sw2 = rsp[rsp.length - 1] & 0xFF;
+            } while (sw1 == 0x61);
+        }
+        if (isSelectOnBasicChannel(cmd)
+                && ((sw1 == 0x90 && sw2 == 0x00)
+                    || sw1 == 0x62
+                    || sw1 == 0x63)) {
+            Log.d(SmartcardService.LOG_TAG, "Select on basic channel succeeded on reader " + getName());
+            mDefaultApplicationSelectedOnBasicChannel = false;
+        }
+        return rsp;
+    }
+
+    /**
+     * Check whether a command is a SELECT by AID sent to the basic channel.
+     *
+     * @param cmd The command to be checked.
+     *
+     * @return true if cmd is a SELECT by AID sent to the basic channel.
+     */
+    private boolean isSelectOnBasicChannel(byte[] cmd) {
+        if ((cmd[0] & 0x03) != 0x00) {
+            Log.d(SmartcardService.LOG_TAG, "(cmd[0] & 0x03) != 0x00");
+            return false;
+        }
+        if (cmd[1] != 0xA4) {
+            Log.d(SmartcardService.LOG_TAG, "cmd[1] != 0xA4");
+            return false;
+        }
+        if (cmd[2] != 0x04) {
+            Log.d(SmartcardService.LOG_TAG, "cmd[2] != 0x04");
+            return false;
+        }
+        Log.d(SmartcardService.LOG_TAG, "Is select on basic channel!");
+        return true;
     }
 
     public byte[] simIOExchange(int fileID, String filePath, byte[] cmd)

@@ -183,50 +183,8 @@ public class Channel implements IBinder.DeathRecipient {
         CommandApdu cApdu = new CommandApdu(command);
         checkCommand(command);
 
-        if (cApdu.isExtendedLength()
-                && command.length != ISO7816.CMD_APDU_LENGTH_CASE2_EXTENDED) {
-            return transmitExtendedCommand(cApdu.toByteArray());
-        } else {
-            return mSession.transmit(cApdu.toByteArray(), 2, 0, 0, null);
-        }
-    }
+        return mSession.getReader().transmit(cApdu.toByteArray());
 
-    public byte[] transmitExtendedCommand(byte[] command) throws Exception {
-        byte[] envelopeData;
-        byte[] response;
-        int pos = 0;
-        while ((pos +  ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED) < command.length) {
-            envelopeData = new byte[ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED];
-            System.arraycopy(
-                    command, pos, envelopeData, 0, envelopeData.length);
-            mSession.transmit(new CommandApdu(
-                    command[ISO7816.OFFSET_CLA],
-                    (byte) 0xC2,
-                    (byte) 0x00,
-                    (byte) 0x00,
-                    envelopeData).toByteArray(), 2, 0, 0, null);
-            pos += ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED;
-        }
-        // Last request
-        envelopeData = new byte[command.length - pos];
-        if (envelopeData.length != 0) {
-            System.arraycopy(
-                    command, pos, envelopeData, 0, envelopeData.length);
-            mSession.transmit(new CommandApdu(
-                    command[ISO7816.OFFSET_CLA],
-                    (byte) 0xC2,
-                    (byte) 0x00,
-                    (byte) 0x00,
-                    envelopeData).toByteArray(), 2, 0, 0, null);
-        }
-        // Start get data envelope
-        response = mSession.transmit(new CommandApdu(
-                command[ISO7816.OFFSET_CLA],
-                (byte) 0xC2,
-                (byte) 0x00,
-                (byte) 0x00,
-                0).toByteArray(), 2, 0, 0, null);
-        return response;
     }
 
     public boolean selectNext() throws Exception {
@@ -258,7 +216,7 @@ public class Channel implements IBinder.DeathRecipient {
         // set channel number bits
         selectCommand[0] = Util.setChannelToClassByte(selectCommand[0], mChannelNumber);
 
-        byte[] auxSelectResponse = mSession.transmit(selectCommand, 2, 0, 0, "SELECT NEXT");
+        byte[] auxSelectResponse = mSession.getReader().transmit(selectCommand);
 
         int sw1 = auxSelectResponse[auxSelectResponse.length - 2] & 0xFF;
         int sw2 = auxSelectResponse[auxSelectResponse.length - 1] & 0xFF;

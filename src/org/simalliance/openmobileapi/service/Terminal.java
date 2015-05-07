@@ -501,23 +501,10 @@ public class Terminal {
      *
      * @param cmd The command to be checked.
      *
-     * @return true if cmd is a SELECT by AID sent to the basic channel.
+     * @return true if cmd is a SELECT by AID sent to the basic channel, false otherwise.
      */
     private boolean isSelectOnBasicChannel(byte[] cmd) {
-        if ((cmd[0] & 0x03) != 0x00) {
-            Log.d(SmartcardService.LOG_TAG, "(cmd[0] & 0x03) != 0x00");
-            return false;
-        }
-        if (cmd[1] != 0xA4) {
-            Log.d(SmartcardService.LOG_TAG, "cmd[1] != 0xA4");
-            return false;
-        }
-        if (cmd[2] != 0x04) {
-            Log.d(SmartcardService.LOG_TAG, "cmd[2] != 0x04");
-            return false;
-        }
-        Log.d(SmartcardService.LOG_TAG, "Is select on basic channel!");
-        return true;
+        return (cmd[0] & 0x03) == 0x00 && (cmd[1] & 0xFF) == 0xA4 && (cmd[2] & 0xFF) == 0x04;
     }
 
     public byte[] simIOExchange(int fileID, String filePath, byte[] cmd)

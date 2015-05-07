@@ -94,7 +94,9 @@ public class Channel implements IBinder.DeathRecipient {
     }
 
     public synchronized void close() throws Exception {
-        mSession.closeChannel(getChannelNumber());
+        if (mChannelNumber > 0 || mHasSelectedAid) {
+            mSession.getReader().internalCloseLogicalChannel(mChannelNumber);
+        }
         mIsClosed = true;
         mBinder.unlinkToDeath(this, 0);
     }

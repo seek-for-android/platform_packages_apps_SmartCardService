@@ -222,10 +222,6 @@ public class Session {
         return channel.getBinder();
     }
 
-    public void closeChannel(int channelNumber) throws Exception {
-        mReader.internalCloseLogicalChannel(channelNumber);
-    }
-
     public Channel getBasicChannel() {
         for (Channel channel : mChannels.values()) {
             if (channel.getChannelNumber() == 0) {

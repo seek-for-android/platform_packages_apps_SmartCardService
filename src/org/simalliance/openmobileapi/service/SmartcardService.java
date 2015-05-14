@@ -60,7 +60,7 @@ public final class SmartcardService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.v(LOG_TAG, Thread.currentThread().getName() + " smartcard service onBind");
-        if (ISmartcardService.class.getName().equals(intent.getAction())) {
+        if ("org.simalliance.openmobileapi.BIND_SERVICE".equals(intent.getAction())) {
             return mSmartcardBinder;
         }
         return null;

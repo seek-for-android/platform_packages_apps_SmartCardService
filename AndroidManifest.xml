@@ -23,7 +23,7 @@
                 android:process=":remote"
                 android:permission="org.simalliance.openmobileapi.SMARTCARD">
             <intent-filter>
-                <action android:name="org.simalliance.openmobileapi.service.ISmartcardService" />
+                <action android:name="org.simalliance.openmobileapi.BIND_SERVICE" />
             </intent-filter>
         </service>
         <receiver android:name="org.simalliance.openmobileapi.service.SmartcardServiceBootCompletedBroadcastReceiver">

@@ -9,11 +9,9 @@ import org.simalliance.openmobileapi.service.security.ChannelAccess;
 
 
 import java.io.PrintWriter;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Random;
 
 /**
  * The smartcard service Session implementation.
@@ -26,11 +24,8 @@ public class Session {
     /**
      * List of open channels in use by this client.
      */
-    private final Map<Long, Channel> mChannels = new HashMap<>();
-    /**
-     * Random number generator used for handle creation.
-     */
-    private Random mRandom = new Random();
+    private final List<Channel> mChannels = new ArrayList<>();
+
     private final Object mLock = new Object();
 
     public Session(Terminal reader, Context context) {
@@ -60,24 +55,16 @@ public class Session {
         mReader.sessionClosed(this);
     }
 
-    public void closeChannels() {
+    private void closeChannels() {
         synchronized (mLock) {
-            Collection<Channel> col = mChannels.values();
-            Channel[] channelList = col.toArray(new Channel[col.size()]);
-            for (Channel channel : channelList) {
-                if (channel != null && !channel.isClosed()) {
-                    try {
-                        channel.close();
-                        removeChannel(channel);
-                    } catch (Exception ignore) {
-                        Log.e(SmartcardService.LOG_TAG,
-                                "ServiceSession channel - close Exception: " + ignore.getMessage(),
-                                ignore);
-                    }
-                }
+            while (mChannels.size() > 0) {
+                mChannels.get(0).close();
             }
-            mChannels.clear();
         }
+    }
+
+    public void channelClosed(Channel channel) {
+        mChannels.remove(channel);
     }
 
     public boolean isClosed() {
@@ -153,7 +140,7 @@ public class Session {
 
         Log.v(SmartcardService.LOG_TAG, "Open basic channel success. Channel: " + channel.getChannelNumber());
 
-        registerChannel(channel);
+        mChannels.add(channel);
         return channel.getBinder();
     }
 
@@ -205,12 +192,12 @@ public class Session {
 
         Log.v(SmartcardService.LOG_TAG, "Open logical channel successfull. Channel: " + channel.getChannelNumber());
 
-        registerChannel(channel);
+        mChannels.add(channel);
         return channel.getBinder();
     }
 
     public Channel getBasicChannel() {
-        for (Channel channel : mChannels.values()) {
+        for (Channel channel : mChannels) {
             if (channel.getChannelNumber() == 0) {
                 return channel;
             }
@@ -218,40 +205,8 @@ public class Session {
         return null;
     }
 
-    /**
-     * Creates a handle for the specified channel instances and adds the channel
-     * instance to the channel list.
-     *
-     * @param channel
-     * @return the channel handle.
-     */
-    private long registerChannel(Channel channel) {
-        long hChannel = mRandom.nextInt();
-        hChannel <<= 32;
-        hChannel |= (((long) channel.hashCode()) & 0xFFFFFFFFL);
-        channel.setHandle(hChannel);
-        mChannels.put(hChannel, channel);
-
-        return hChannel;
-    }
-
-    /**
-     * Closes the specified channel. <br>
-     * After calling this method the session can not be used for the
-     * communication with the secure element any more.
-     *
-     * @param channel the channel handle obtained by an open channel
-     *        command.
-     */
-    private void removeChannel(Channel channel) {
-        if (channel == null) {
-            return;
-        }
-        mChannels.remove(channel.getHandle());
-    }
-
     public void dump(PrintWriter writer, String prefix) {
-        for (Channel channel : mChannels.values()) {
+        for (Channel channel : mChannels) {
             writer.println(prefix + "  channel " + channel.getChannelNumber()
                     + ": ");
             writer.println(prefix + "    package      : "

@@ -41,7 +41,7 @@ import dalvik.system.DexClassLoader;
 /**
  * The smartcard service is setup with privileges to access smart card hardware.
  * The service enforces the permission
- * 'org.simalliance.openmobileapi.service.permission.BIND'.
+ * 'org.simalliance.openmobileapi.SMARTCARD'.
  */
 public final class SmartcardService extends Service {
 
@@ -119,10 +119,28 @@ public final class SmartcardService extends Service {
         return terminal.getBinder();
     }
 
-    private boolean isValidTerminal(String packageName, String terminalType) throws PackageManager.NameNotFoundException {
+    /**
+     * Checks if a terminal is valid or not. The policy is the following:
+     * - If terminal type is SIM, eSE or SD (i.e., is a "system" terminal), it must declare the
+     *   org.simalliance.openmobileapi.SYSTEM_TERMINAL permission.
+     * - If terminal type is another one, there is no requirement.
+     *
+     * @param packageName The package name of the terminal.
+     * @param terminalType The type of the terminal.
+     *
+     * @return True if the terminal is valid, false otherwise.
+     *
+     * @throws PackageManager.NameNotFoundException If the package name could not be located.
+     */
+    private boolean isValidTerminal(String packageName, String terminalType)
+            throws PackageManager.NameNotFoundException {
         Log.d(LOG_TAG, "Check if "+ terminalType + " is a valid Terminal");
-        if ("SIM".equalsIgnoreCase(terminalType) || "eSE".equalsIgnoreCase(terminalType) || "SD".equalsIgnoreCase(terminalType)) {
-            String[] permissions = getPackageManager().getPackageInfo(packageName, PackageManager.GET_PERMISSIONS).requestedPermissions;
+        if ("SIM".equalsIgnoreCase(terminalType)
+                || "eSE".equalsIgnoreCase(terminalType)
+                || "SD".equalsIgnoreCase(terminalType)) {
+            String[] permissions = getPackageManager()
+                                    .getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
+                                    .requestedPermissions;
             for(String permission : permissions) {
                 if("org.simalliance.openmobileapi.SYSTEM_TERMINAL".equals(permission)) {
                     return true;
@@ -133,6 +151,11 @@ public final class SmartcardService extends Service {
         return true;
     }
 
+    /**
+     * Finds all the terminals that are present on the system and adds them to the mTerminals map.
+     * or a terminal to be discovered, it must listen to the
+     * org.simalliance.openmobileapi.TERMINAL_DISCOVERY intent.
+     */
     private void createTerminals() {
         // Find Terminal packages
         PackageManager pm = getApplicationContext().getPackageManager();
@@ -142,6 +165,7 @@ public final class SmartcardService extends Service {
         Log.d(LOG_TAG, "Found " + terminallist.size() + " terminals.");
         for (ResolveInfo info : terminallist) {
             try {
+                // Get terminal type
                 String packageName = info.serviceInfo.applicationInfo.packageName;
                 String sourceDir = getPackageManager().getApplicationInfo(packageName, 0).sourceDir;
                 DexClassLoader cl = new DexClassLoader(
@@ -154,7 +178,7 @@ public final class SmartcardService extends Service {
                         .getMethod("getType", (Class<?>[]) null)
                         .invoke(null, (Object[]) null);
                 if (!isValidTerminal(packageName, terminalType)) {
-                    Log.d(LOG_TAG, "Invalid Terminal, not added");
+                    Log.w(LOG_TAG, "Invalid Terminal of type " + terminalType + ", not added");
                     continue;
                 }
                 String name = terminalType + getIndexForTerminal(terminalType);

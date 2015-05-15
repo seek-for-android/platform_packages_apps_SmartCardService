@@ -1,23 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="org.simalliance.openmobileapi.service"
-      android:sharedUserId="org.simalliance.uid.openmobileapi"
-      android:versionCode="5" 
-      android:versionName="3.2.1">
+      android:versionCode="8"
+      android:versionName="3.2.2-SNAPSHOT">
     
     <permission android:label="SmartcardServicePermission label" 
                 android:protectionLevel="dangerous" 
                 android:name="org.simalliance.openmobileapi.SMARTCARD">
     </permission>
 
-    <uses-permission android:name="org.simalliance.openmobileapi.SMARTCARD"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="org.simalliance.openmobileapi.BIND_TERMINAL"/>
 
     <application android:label="SmartcardService">
-        
-        <uses-library android:name="org.simalliance.openmobileapi" android:required="true" />
-        
         <service android:enabled="true"
                 android:name="org.simalliance.openmobileapi.service.SmartcardService"
                 android:process=":remote"

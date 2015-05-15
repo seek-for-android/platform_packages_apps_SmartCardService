@@ -49,8 +49,8 @@ public class Channel implements IBinder.DeathRecipient {
 
     private ISmartcardServiceCallback mCallback;
 
-    private boolean mHasSelectedAid = false;
-    private byte[] mAid = null;
+    private boolean mHasSelectedAid;
+    private byte[] mAid;
 
     /**
      * Creates a Channel object.
@@ -64,12 +64,15 @@ public class Channel implements IBinder.DeathRecipient {
             int channelNumber,
             byte[] selectResponse,
             ISmartcardServiceCallback callback) {
-        this.mChannelNumber = channelNumber;
-        this.mSession = session;
-        this.mCallback = callback;
-        this.mBinder = callback.asBinder();
-        this.mSelectResponse = selectResponse;
-        this.mIsClosed = false;
+        mChannelNumber = channelNumber;
+        mSession = session;
+        mCallback = callback;
+        mBinder = callback.asBinder();
+        mSelectResponse = selectResponse;
+        mIsClosed = false;
+        mChannelAccess = null;
+        mHasSelectedAid = false;
+        mAid = null;
         try {
             mBinder.linkToDeath(this, 0);
         } catch (RemoteException e) {

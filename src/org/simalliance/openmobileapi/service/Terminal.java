@@ -44,22 +44,20 @@ import android.util.Log;
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 
-
-
 /**
  * Smartcard service base class for terminal resources.
  */
 public class Terminal {
 
-    protected Context mContext;
+    private Context mContext;
 
-    protected final String mName;
+    private final String mName;
 
-    protected int mIndex;
+    private int mIndex;
 
-    protected ITerminalService mTerminalService;
+    private ITerminalService mTerminalService;
 
-    protected ServiceConnection mTerminalConnection;
+    private ServiceConnection mTerminalConnection;
 
     private final ArrayList<Session> mSessions = new ArrayList<>();
 
@@ -70,7 +68,7 @@ public class Terminal {
 
     private BroadcastReceiver mSEReceiver;
 
-    protected boolean mDefaultApplicationSelectedOnBasicChannel = true;
+    private boolean mDefaultApplicationSelectedOnBasicChannel = true;
 
     /**
      * For each Terminal there will be one AccessController object.
@@ -238,7 +236,7 @@ public class Terminal {
         mSessions.clear();
     }
 
-    protected Channel getBasicChannel() {
+    public Channel getBasicChannel() {
         for (Session session : mSessions) {
             Channel basicChannel = session.getBasicChannel();
             if (basicChannel != null) {

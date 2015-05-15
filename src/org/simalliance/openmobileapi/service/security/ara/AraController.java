@@ -193,7 +193,7 @@ public class AraController {
         if (rsp == null) {
             return null;
         }
-        Channel channel = new Channel(null, rsp.getChannel(), rsp.getSelectResponse(), callback);
+        Channel channel = new Channel(null, rsp.getChannel(), aid, rsp.getSelectResponse(), callback);
 
         // set access conditions to access ARA-M.
         ChannelAccess araChannelAccess = new ChannelAccess();

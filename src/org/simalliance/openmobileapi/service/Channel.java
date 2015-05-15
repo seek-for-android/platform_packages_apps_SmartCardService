@@ -33,44 +33,44 @@ import org.simalliance.openmobileapi.util.CommandApdu;
  */
 public class Channel implements IBinder.DeathRecipient {
 
+    private Session mSession;
+
     private final int mChannelNumber;
 
     private boolean mIsClosed;
 
-    private Session mSession;
+    private byte[] mAid;
 
     private byte[] mSelectResponse;
 
     private final IBinder mBinder;
 
-    private ChannelAccess mChannelAccess = null;
+    private ChannelAccess mChannelAccess;
 
     private ISmartcardServiceCallback mCallback;
-
-    private boolean mHasSelectedAid;
-    private byte[] mAid;
 
     /**
      * Creates a Channel object.
      *
      * @param session The session that created this channel.
-     * @param channelNumber The channel number.
+     * @param channelNumber The number of the channel open.
+     * @param aid The aid to which the channel was open.
      * @param selectResponse The response to the select command (if any).
      * @param callback
      */
     public Channel(Session session,
             int channelNumber,
+            byte[] aid,
             byte[] selectResponse,
             ISmartcardServiceCallback callback) {
-        mChannelNumber = channelNumber;
         mSession = session;
+        mChannelNumber = channelNumber;
+        mAid = aid;
+        mSelectResponse = selectResponse;
         mCallback = callback;
         mBinder = callback.asBinder();
-        mSelectResponse = selectResponse;
         mIsClosed = false;
         mChannelAccess = null;
-        mHasSelectedAid = false;
-        mAid = null;
         try {
             mBinder.linkToDeath(this, 0);
         } catch (RemoteException e) {
@@ -93,7 +93,7 @@ public class Channel implements IBinder.DeathRecipient {
     }
 
     public synchronized void close() {
-        if (mChannelNumber > 0 || mHasSelectedAid) {
+        if (mChannelNumber > 0 || hasSelectedAid()) {
             try {
                 mSession.getReader().internalCloseLogicalChannel(mChannelNumber);
             } catch (Exception ignore) {
@@ -242,12 +242,10 @@ public class Channel implements IBinder.DeathRecipient {
     }
 
     /**
-     * set selected aid flag and aid (may be null).
-     * TODO: this method should be removed and AID be set in constructor
+     * @return true if a SELECT by AID was sent to open this channel.
      */
-    public void hasSelectedAid(boolean has, byte[] aid) {
-        mHasSelectedAid = has;
-        mAid = aid;
+    private boolean hasSelectedAid() {
+        return mAid != null;
     }
 
     /**

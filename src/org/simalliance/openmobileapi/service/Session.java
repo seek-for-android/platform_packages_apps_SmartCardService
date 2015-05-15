@@ -110,10 +110,9 @@ public class Session {
         Channel channel;
         if (aid == null) {
             if (!mReader.isDefaultApplicationSelectedOnBasicChannel()) {
-                throw new IllegalStateException("default application is not selected");
+                return null;
             }
-            channel = new Channel(this, 0, null, callback);
-            channel.hasSelectedAid(false, null);
+            channel = new Channel(this, 0, null, null, callback);
         } else {
             byte[] selectCommand = new byte[aid.length + 6];
             selectCommand[0] = 0x00;
@@ -132,8 +131,7 @@ public class Session {
                     && (selectResponse[0] != (byte) 0x90 || selectResponse[1] != (byte) 0x00)) {
                throw new NoSuchElementException("Secure Element cannot be selected");
             }
-            channel = new Channel(this, 0, selectResponse, callback);
-            channel.hasSelectedAid(true, aid);
+            channel = new Channel(this, 0, aid, selectResponse, callback);
         }
 
         channel.setChannelAccess(channelAccess);
@@ -186,8 +184,7 @@ public class Session {
             return null;
         }
 
-        Channel channel = new Channel(this, rsp.getChannel(), rsp.getSelectResponse(), callback);
-        channel.hasSelectedAid(aid != null, aid);
+        Channel channel = new Channel(this, rsp.getChannel(), aid, rsp.getSelectResponse(), callback);
         channel.setChannelAccess(channelAccess);
 
         Log.v(SmartcardService.LOG_TAG, "Open logical channel successfull. Channel: " + channel.getChannelNumber());

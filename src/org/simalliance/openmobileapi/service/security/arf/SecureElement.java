@@ -108,7 +108,7 @@ public class SecureElement {
             if (rsp == null) {
                 return null;
             }
-            mArfChannel = new Channel(null, rsp.getChannel(), rsp.getSelectResponse(), mCallback);
+            mArfChannel = new Channel(null, rsp.getChannel(), AID, rsp.getSelectResponse(), mCallback);
             setUpChannelAccess(mArfChannel);
             return mArfChannel;
         } catch(Exception e) {

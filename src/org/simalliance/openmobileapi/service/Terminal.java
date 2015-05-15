@@ -53,8 +53,6 @@ public class Terminal {
 
     private final String mName;
 
-    private int mIndex;
-
     private ITerminalService mTerminalService;
 
     private ServiceConnection mTerminalConnection;
@@ -68,7 +66,8 @@ public class Terminal {
 
     private BroadcastReceiver mSEReceiver;
 
-    private boolean mDefaultApplicationSelectedOnBasicChannel = true;
+     // TODO: this info should be stored persistently to persist on service restarts.
+    private boolean mIsDefaultApplicationSelectedOnBasicChannel;
 
     /**
      * For each Terminal there will be one AccessController object.
@@ -78,6 +77,7 @@ public class Terminal {
     public Terminal(Context context, String name, ResolveInfo info) {
         mContext = context;
         mName = name;
+        mIsDefaultApplicationSelectedOnBasicChannel = true;
         mTerminalConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
@@ -89,12 +89,15 @@ public class Terminal {
             @Override
             public void onServiceDisconnected(ComponentName componentName) {
                 mTerminalService = null;
+                // Cancel the inialization background task if still running
+                if (mInitialiseTask != null) {
+                    mInitialiseTask.cancel(true);
+                }
             }
         };
 
         mContext.bindService(
-                new Intent().setClassName(info.serviceInfo.packageName,
-                        info.serviceInfo.name),
+                new Intent().setClassName(info.serviceInfo.packageName, info.serviceInfo.name),
                 mTerminalConnection,
                 Context.BIND_AUTO_CREATE);
     }
@@ -147,7 +150,18 @@ public class Terminal {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if (intent.getAction().equals(seStateChangedAction)) {
-                    initializeAccessControl(true);
+                    try {
+                        if (mTerminalService.isCardPresent()) {
+                            initializeAccessControl(true);
+                        } else {
+                            resetAccessControl();
+                        }
+                    } catch (RemoteException ignore) {
+                        Log.w(SmartcardService.LOG_TAG,
+                                "SE State Chaned receiver: Error calling isCardPresent, ignoring event",
+                                ignore);
+                    }
+
                 }
             }
         };
@@ -158,7 +172,7 @@ public class Terminal {
      * Initalizes Access Control. At least the refresh tag is read and if it
      * differs to the previous one (e.g. is null) the all access rules are read.
      *
-     * @param reset
+     * @param reset true to indicate that ACE should be reset.
      */
     public synchronized boolean initializeAccessControl(boolean reset) {
         Log.i(SmartcardService.LOG_TAG, "Initializing Access Control");
@@ -212,7 +226,7 @@ public class Terminal {
 
         synchronized (mLock) {
             if(!mAccessControlEnforcer.isInitialized()) {
-                Terminal.this.initializeAccessControl(false);
+                initializeAccessControl(false);
             }
             Session session = new Session(this, mContext);
             mSessions.add(session);
@@ -343,6 +357,7 @@ public class Terminal {
         try {
             return mTerminalService.getAtr();
         } catch (RemoteException e) {
+            Log.e(SmartcardService.LOG_TAG, "Error during getAtr()", e);
             return null;
         }
     }
@@ -352,8 +367,8 @@ public class Terminal {
      *
      * @return the true if default application is selected on the basic channel.
      */
-    public boolean getDefaultApplicationSelectedOnBasicChannel() {
-        return mDefaultApplicationSelectedOnBasicChannel;
+    public boolean isDefaultApplicationSelectedOnBasicChannel() {
+        return mIsDefaultApplicationSelectedOnBasicChannel;
     }
     /**
      * Returns <code>true</code> if a card is present; <code>false</code>
@@ -369,10 +384,6 @@ public class Terminal {
             Log.w(SmartcardService.LOG_TAG, "Error during isCardPresent()", e);
             return false;
         }
-    }
-
-    public boolean isConnected() {
-        return (mTerminalService != null);
     }
 
     /**
@@ -445,7 +456,7 @@ public class Terminal {
             }
         }
         if ("SELECT ON BASIC CHANNEL".equalsIgnoreCase(commandName)) {
-            mDefaultApplicationSelectedOnBasicChannel = false;
+            mIsDefaultApplicationSelectedOnBasicChannel = false;
         }
         return rsp;
     }
@@ -489,7 +500,7 @@ public class Terminal {
                     || sw1 == 0x62
                     || sw1 == 0x63)) {
             Log.d(SmartcardService.LOG_TAG, "Select on basic channel succeeded on reader " + getName());
-            mDefaultApplicationSelectedOnBasicChannel = false;
+            mIsDefaultApplicationSelectedOnBasicChannel = false;
         }
         return rsp;
     }
@@ -511,7 +522,7 @@ public class Terminal {
         try {
             return mTerminalService.simIOExchange(fileID, filePath, cmd, error);
         } catch (RemoteException e) {
-            throw new Exception("SIM IO error!");
+            throw new IOException("SIM IO error!");
         }
     }
 
@@ -531,7 +542,7 @@ public class Terminal {
         return mAccessControlEnforcer;
     }
 
-    public synchronized void resetAccessControl() {
+    private synchronized void resetAccessControl() {
         if (mAccessControlEnforcer != null) {
             mAccessControlEnforcer.reset();
         }

@@ -126,7 +126,7 @@ public class Session {
         }
         Channel channel;
         if (noAid) {
-            if (!mReader.getDefaultApplicationSelectedOnBasicChannel()) {
+            if (!mReader.isDefaultApplicationSelectedOnBasicChannel()) {
                 throw new IllegalStateException("default application is not selected");
             }
             channel = new Channel(this, 0, null, callback);

@@ -247,7 +247,6 @@ public class Terminal {
         while (mSessions.size() > 0) {
             mSessions.get(0).close();
         }
-        mSessions.clear();
     }
 
     public Channel getBasicChannel() {

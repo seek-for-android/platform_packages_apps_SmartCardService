@@ -37,8 +37,6 @@ public class Channel implements IBinder.DeathRecipient {
 
     private boolean mIsClosed;
 
-    private long mHandle;
-
     private Session mSession;
 
     private byte[] mSelectResponse;
@@ -94,12 +92,18 @@ public class Channel implements IBinder.DeathRecipient {
         }
     }
 
-    public synchronized void close() throws Exception {
+    public synchronized void close() {
         if (mChannelNumber > 0 || mHasSelectedAid) {
-            mSession.getReader().internalCloseLogicalChannel(mChannelNumber);
+            try {
+                mSession.getReader().internalCloseLogicalChannel(mChannelNumber);
+            } catch (Exception ignore) {
+                // Just log the exception as nothing can be done here
+                Log.e(SmartcardService.LOG_TAG, "Error while closing channel", ignore);
+            }
         }
         mIsClosed = true;
         mBinder.unlinkToDeath(this, 0);
+        mSession.channelClosed(this);
     }
 
     public int getChannelNumber() {
@@ -117,24 +121,6 @@ public class Channel implements IBinder.DeathRecipient {
 
     public ISmartcardServiceCallback getCallback() {
         return mCallback;
-    }
-
-    /**
-     * Returns the handle assigned to this channel.
-     *
-     * @return the handle assigned to this channel.
-     */
-    long getHandle() {
-        return mHandle;
-    }
-
-    /**
-     * Assigns the channel handle.
-     *
-     * @param handle the channel handle to be assigned.
-     */
-    void setHandle(long handle) {
-        this.mHandle = handle;
     }
 
     public byte[] transmit(byte[] command) throws Exception {

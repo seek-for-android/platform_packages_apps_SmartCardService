@@ -27,32 +27,30 @@ import android.util.Log;
 
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 import org.simalliance.openmobileapi.util.CommandApdu;
-import org.simalliance.openmobileapi.util.ResponseApdu;
-import org.simalliance.openmobileapi.util.ISO7816;
 
 /**
  * Smartcard service base class for channel resources.
  */
 public class Channel implements IBinder.DeathRecipient {
 
-    protected final int mChannelNumber;
+    private final int mChannelNumber;
 
-    protected boolean mIsClosed;
+    private boolean mIsClosed;
 
-    protected long mHandle;
+    private long mHandle;
 
-    protected Session mSession;
+    private Session mSession;
 
-    protected byte[] mSelectResponse;
+    private byte[] mSelectResponse;
 
-    protected final IBinder mBinder;
+    private final IBinder mBinder;
 
-    protected ChannelAccess mChannelAccess = null;
+    private ChannelAccess mChannelAccess = null;
 
-    protected ISmartcardServiceCallback mCallback;
+    private ISmartcardServiceCallback mCallback;
 
-    protected boolean mHasSelectedAid = false;
-    protected byte[] mAid = null;
+    private boolean mHasSelectedAid = false;
+    private byte[] mAid = null;
 
     /**
      * Creates a Channel object.

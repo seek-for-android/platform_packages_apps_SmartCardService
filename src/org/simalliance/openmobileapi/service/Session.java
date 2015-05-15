@@ -16,7 +16,7 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 
 /**
- * The smartcard service interface implementation.
+ * The smartcard service Session implementation.
  */
 public class Session {
 
@@ -99,13 +99,9 @@ public class Session {
             throw new IllegalStateException("Reader must not be null");
         }
 
-        boolean noAid = false;
         if (aid == null || aid.length == 0) {
-            aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
-            noAid = true;
-        }
-
-        if (aid.length < 5 || aid.length > 16) {
+            aid = null;
+        } else if (aid.length < 5 || aid.length > 16) {
             throw new IllegalArgumentException("AID out of range");
         }
 
@@ -114,8 +110,8 @@ public class Session {
                 Binder.getCallingUid());
         Log.v(SmartcardService.LOG_TAG, "Enable access control on basic channel for "
                 + packageName);
-        ChannelAccess channelAccess = mReader.
-                setUpChannelAccess(mContext.getPackageManager(), aid, packageName);
+        ChannelAccess channelAccess = mReader.setUpChannelAccess(
+                mContext.getPackageManager(), aid, packageName);
         Log.v(SmartcardService.LOG_TAG, "Access control successfully enabled.");
 
         channelAccess.setCallingPid(Binder.getCallingPid());
@@ -125,13 +121,12 @@ public class Session {
             return null;
         }
         Channel channel;
-        if (noAid) {
+        if (aid == null) {
             if (!mReader.isDefaultApplicationSelectedOnBasicChannel()) {
                 throw new IllegalStateException("default application is not selected");
             }
             channel = new Channel(this, 0, null, callback);
             channel.hasSelectedAid(false, null);
-
         } else {
             byte[] selectCommand = new byte[aid.length + 6];
             selectCommand[0] = 0x00;
@@ -177,13 +172,9 @@ public class Session {
             throw new IllegalStateException("Reader must not be null");
         }
 
-        boolean noAid = false;
         if (aid == null || aid.length == 0) {
-            aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
-            noAid = true;
-        }
-
-        if (aid.length < 5 || aid.length > 16) {
+            aid = null;
+        } else if (aid.length < 5 || aid.length > 16) {
             throw new IllegalArgumentException("AID out of range");
         }
 
@@ -192,17 +183,13 @@ public class Session {
                 Binder.getCallingUid());
         Log.v(SmartcardService.LOG_TAG, "Enable access control on logical channel for "
                 + packageName);
-        ChannelAccess channelAccess = mReader.
-                setUpChannelAccess(mContext.getPackageManager(), aid, packageName);
+        ChannelAccess channelAccess = mReader.setUpChannelAccess(
+                mContext.getPackageManager(), aid, packageName);
         Log.v(SmartcardService.LOG_TAG, "Access control successfully enabled.");
         channelAccess.setCallingPid(Binder.getCallingPid());
 
 
         Log.v(SmartcardService.LOG_TAG, "OpenLogicalChannel");
-        if (noAid) {
-            aid = null;
-        }
-
         OpenLogicalChannelResponse rsp;
         synchronized (this) {
             rsp = mReader.internalOpenLogicalChannel(aid, p2);
@@ -213,7 +200,7 @@ public class Session {
         }
 
         Channel channel = new Channel(this, rsp.getChannel(), rsp.getSelectResponse(), callback);
-        channel.hasSelectedAid(true, aid);
+        channel.hasSelectedAid(aid != null, aid);
         channel.setChannelAccess(channelAccess);
 
         Log.v(SmartcardService.LOG_TAG, "Open logical channel successfull. Channel: " + channel.getChannelNumber());

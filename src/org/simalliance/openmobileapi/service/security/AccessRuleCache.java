@@ -232,9 +232,8 @@ public class AccessRuleCache {
 
     public static AID_REF_DO getAidRefDo( byte[] aid ){
         AID_REF_DO aid_ref_do;
-        byte[] defaultAid = new byte[]{ 0x00, 0x00, 0x00, 0x00, 0x00 }; // this is the placeholder for the default aid.
 
-        if( aid == null || Arrays.equals( aid, defaultAid )){
+        if( aid == null || aid.length == 0 ){
             aid_ref_do = new AID_REF_DO(AID_REF_DO._TAG_DEFAULT_APPLICATION);
         } else {
             aid_ref_do = new AID_REF_DO(AID_REF_DO._TAG, aid);

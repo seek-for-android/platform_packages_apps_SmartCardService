@@ -302,12 +302,6 @@ public class AccessControlEnforcer {
         if (packageName == null || packageName.isEmpty()) {
             throw new SecurityException("package names must be specified");
         }
-        if (aid == null || aid.length == 0) {
-            throw new SecurityException("AID must be specified");
-        }
-        if (aid.length < 5 || aid.length > 16) {
-            throw new SecurityException("AID has an invalid length");
-        }
 
         try {
             // estimate SHA-1 hash value of the device application's certificate.

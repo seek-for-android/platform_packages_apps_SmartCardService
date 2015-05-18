@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.Terminal;
-import org.simalliance.openmobileapi.service.Util;
+import org.simalliance.openmobileapi.internal.Util;
 import org.simalliance.openmobileapi.service.security.CommandApdu;
 import org.simalliance.openmobileapi.service.security.ResponseApdu;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.BerTlv;

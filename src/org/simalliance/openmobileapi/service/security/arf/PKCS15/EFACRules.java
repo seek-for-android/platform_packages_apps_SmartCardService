@@ -25,13 +25,11 @@ import android.util.Log;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.simalliance.openmobileapi.service.Util;
+import org.simalliance.openmobileapi.internal.Util;
 import org.simalliance.openmobileapi.service.security.arf.ASN1;
 import org.simalliance.openmobileapi.service.security.arf.DERParser;
 import org.simalliance.openmobileapi.service.security.arf.SecureElement;
 import org.simalliance.openmobileapi.service.security.arf.SecureElementException;
-import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFACConditions;
-import org.simalliance.openmobileapi.service.security.arf.PKCS15.PKCS15Exception;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.AID_REF_DO;
 
 /**

@@ -29,16 +29,6 @@ public final class ByteArrayConverter {
     }
 
     /**
-     * Indicate the length of a short.
-     */
-    public static final int SHORT_SIZE = 2;
-
-    /**
-     * Indicate the beginning of the Array.
-     */
-    public static final int BEGINNING_ARRAY = 0;
-
-    /**
      * Forms a FileViewProvider-compatible path String (i.e., transforms the
      * byte array {0x3F, 0x00, 0x2F, 0xE2} into the String "3F00:2FE2").
      *
@@ -66,26 +56,73 @@ public final class ByteArrayConverter {
         return path;
     }
 
+    /**
+     * Forms an hex-encoded String of the specified byte array.
+     *
+     * @param array The byte array to be hex-encoded.
+     * @param offset The start position.
+     * @param length The number of bytes to be converted.
+     *
+     * @return A hex-encoded String of the specified byte array.
+     */
+    public static String byteArrayToHexString(byte[] array, int offset, int length) {
+        if (array == null) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < length; i++) {
+            sb.append(String.format("%02x", array[offset + i] & 0xFF));
+        }
+
+        return sb.toString();
+    }
+
 
     /**
      * Forms an hex-encoded String of the specified byte array.
      *
      * @param byteArray The byte array to be hex-encoded.
      *
-     * @return An hex-encoded String of the specified byte array.
+     * @return A hex-encoded String of the specified byte array.
      */
     public static String byteArrayToHexString(byte[] byteArray) {
         if (byteArray == null) {
             return "";
         }
+        return byteArrayToHexString(byteArray, 0, byteArray.length);
+    }
 
-        StringBuffer sb = new StringBuffer();
-
-        for (byte b : byteArray) {
-            sb.append(String.format("%02x", b & 0xFF));
+    /**
+     * Forms a byte array containing the values of the hex-encoded string.
+     *
+     * @param str The hex-encoded string to be converted to byte-array.
+     * @param offset The start position.
+     * @param length The number of chars to be converted (must be multiple of 2).
+     *
+     * @return A byte array containing the values of the hex-encoded string.
+     */
+    public static byte[] hexStringToByteArray(String str, int offset, int length) {
+        if (length % 2 != 0) {
+            throw new IllegalArgumentException("length must be multiple of 2");
         }
 
-        return sb.toString();
+        str = str.toUpperCase();
+
+        byte[] outputBytes = new byte[str.length() / 2];
+
+        for (int i = 0; i < length; i += 2) {
+            char c1 = str.charAt(i + offset);
+            char c2 = str.charAt(i + 1 + offset);
+            if (!isHexChar(c1) || !isHexChar(c2)) {
+                throw new IllegalArgumentException("Invalid char found");
+            }
+
+            outputBytes[i / 2] = (byte) ((Character.digit(c1, 16) << 4) + Character.digit(c2, 16));
+        }
+
+        return outputBytes;
     }
 
     /**
@@ -96,27 +133,7 @@ public final class ByteArrayConverter {
      * @return A byte array containing the values of the hex-encoded string.
      */
     public static byte[] hexStringToByteArray(String str) {
-        if (str.length() % 2 != 0) {
-            return null;
-        }
-
-        str = str.toUpperCase();
-
-        byte[] outputBytes = new byte[str.length() / 2];
-
-        for (int i = 0; i < str.length(); i += 2) {
-
-            if (!isHexChar(str.charAt(i)) || !isHexChar(str.charAt(i + 1))) {
-                // Return null if invalid characters
-                return null;
-            }
-
-            outputBytes[i / 2] = (byte) (
-                    (Character.digit(str.charAt(i), 16) << 4)
-                    + Character.digit(str.charAt(i + 1), 16));
-        }
-
-        return outputBytes;
+        return hexStringToByteArray(str, 0, str.length());
     }
 
     /**

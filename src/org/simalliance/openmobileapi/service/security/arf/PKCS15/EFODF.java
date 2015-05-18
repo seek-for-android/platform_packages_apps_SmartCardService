@@ -23,8 +23,7 @@ package org.simalliance.openmobileapi.service.security.arf.PKCS15;
 import org.simalliance.openmobileapi.service.security.arf.DERParser;
 import org.simalliance.openmobileapi.service.security.arf.SecureElement;
 import org.simalliance.openmobileapi.service.security.arf.SecureElementException;
-import org.simalliance.openmobileapi.service.Util;
-import org.simalliance.openmobileapi.service.security.arf.PKCS15.PKCS15Exception;
+import org.simalliance.openmobileapi.internal.Util;
 
 import android.util.Log;
 

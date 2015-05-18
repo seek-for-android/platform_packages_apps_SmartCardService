@@ -15,7 +15,7 @@
  */
 package org.simalliance.openmobileapi.service.security;
 
-import org.simalliance.openmobileapi.service.Util;
+import org.simalliance.openmobileapi.internal.Util;
 
 
 public class ApduFilter {

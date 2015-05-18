@@ -17,7 +17,7 @@
  * Contributed by: Giesecke & Devrient GmbH.
  */
 
-package org.simalliance.openmobileapi.service;
+package org.simalliance.openmobileapi.internal;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -41,6 +41,7 @@ public class Util {
         return data;
     }
 
+    @Deprecated // User ByteArrayConverter instead
     public static String bytesToString(byte[] bytes) {
         if(bytes == null)
             return "";
@@ -103,6 +104,7 @@ public class Util {
         return commandName + " " + message;
     }
 
+    @Deprecated // Use ByteArrayConverter instead
     public static String bytesToString(byte[] array,int offset,int length, String prefix) {
         if (array==null) return null;
         if (length==-1) length=array.length-offset;
@@ -167,5 +169,50 @@ public class Util {
                     "Channel number must be within [0..19]");
         }
         return cla;
+    }
+
+    /**
+     * Clear the channel number.
+     *
+     * @param cla
+     *
+     * @return the cla without channel number
+     */
+    public static byte clearChannelNumber(byte cla) {
+        // bit 7 determines which standard is used
+        boolean isFirstInterindustryClassByteCoding = (cla & 0x40) == 0x00;
+
+        if (isFirstInterindustryClassByteCoding) {
+            // First Interindustry Class Byte Coding
+            // see 11.1.4.1: channel number is encoded in the 2 rightmost bits
+            return (byte) (cla & 0xFC);
+        } else {
+            // Further Interindustry Class Byte Coding
+            // see 11.1.4.2: channel number is encoded in the 4 rightmost bits
+            return (byte) (cla & 0xF0);
+        }
+    }
+
+    /**
+     * Extracts the channel number from a CLA byte. Specified in GlobalPlatform
+     * Card Specification 2.2.0.7: 11.1.4 Class Byte Coding.
+     *
+     * @param cla
+     *            the command's CLA byte
+     * @return the channel number within [0x00..0x0F]
+     */
+    public static int parseChannelNumber(byte cla) {
+        // bit 7 determines which standard is used
+        boolean isFirstInterindustryClassByteCoding = (cla & 0x40) == 0x00;
+
+        if (isFirstInterindustryClassByteCoding) {
+            // First Interindustry Class Byte Coding
+            // see 11.1.4.1: channel number is encoded in the 2 rightmost bits
+            return cla & 0x03;
+        } else {
+            // Further Interindustry Class Byte Coding
+            // see 11.1.4.2: channel number is encoded in the 4 rightmost bits
+            return (cla & 0x0F) + 4;
+        }
     }
 }

@@ -25,6 +25,7 @@ import android.os.RemoteException;
 
 import android.util.Log;
 
+import org.simalliance.openmobileapi.internal.Util;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 import org.simalliance.openmobileapi.util.CommandApdu;
 import org.simalliance.openmobileapi.util.ISO7816;

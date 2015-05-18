@@ -5,6 +5,7 @@ import android.os.Binder;
 import android.os.RemoteException;
 import android.util.Log;
 
+import org.simalliance.openmobileapi.internal.Util;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 
 

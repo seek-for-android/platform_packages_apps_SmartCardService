@@ -26,7 +26,7 @@ import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
 import org.simalliance.openmobileapi.service.OpenLogicalChannelResponse;
 import org.simalliance.openmobileapi.service.Terminal;
-import org.simalliance.openmobileapi.service.Util;
+import org.simalliance.openmobileapi.internal.Util;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 import org.simalliance.openmobileapi.service.security.arf.PKCS15.EF;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.AID_REF_DO;

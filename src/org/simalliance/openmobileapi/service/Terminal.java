@@ -41,6 +41,7 @@ import java.util.NoSuchElementException;
 import android.content.pm.PackageManager;
 import android.util.Log;
 
+import org.simalliance.openmobileapi.internal.Util;
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 

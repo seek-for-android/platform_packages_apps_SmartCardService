@@ -29,9 +29,7 @@ import org.simalliance.openmobileapi.service.security.ChannelAccess;
 import org.simalliance.openmobileapi.service.security.arf.ASN1;
 import org.simalliance.openmobileapi.service.security.arf.DERParser;
 import org.simalliance.openmobileapi.service.security.arf.SecureElement;
-import org.simalliance.openmobileapi.service.SmartcardService;
-import org.simalliance.openmobileapi.service.Util;
-import org.simalliance.openmobileapi.service.security.arf.PKCS15.PKCS15Exception;
+import org.simalliance.openmobileapi.internal.Util;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.AID_REF_DO;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.Hash_REF_DO;
 

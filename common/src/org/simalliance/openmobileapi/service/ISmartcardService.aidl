@@ -31,7 +31,7 @@ interface ISmartcardService {
     /**
      * Returns the friendly names of available smart card readers.
      */
-    String[] getReaders(out SmartcardError error);
+    String[] getReaders();
 
     /**
      * Returns Smartcard Service reader object to the given name.

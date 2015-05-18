@@ -72,7 +72,7 @@ public class Channel {
                         error.throwException();
                     }
                 } catch (Exception e) {
-                    Log.e(getClass().getSimpleName(), "Error closing channel", e);
+                    Log.w(getClass().getSimpleName(), "Error closing channel", e);
                 }
             }
         }
@@ -264,12 +264,12 @@ public class Channel {
             throw new IllegalStateException("channel must not be null");
         }
         try {
-			if (mChannel.isClosed()) {
-			    throw new IllegalStateException("channel is closed");
-			}
-		} catch (RemoteException e1) {
-		    throw new IllegalStateException(e1.getMessage());
-		}
+            if (mChannel.isClosed()) {
+                throw new IllegalStateException("channel is closed");
+            }
+        } catch (RemoteException e) {
+            throw new IllegalStateException(e.getMessage());
+        }
 
         synchronized (mLock) {
             try {
@@ -279,8 +279,8 @@ public class Channel {
                     error.throwException();
                 }
                 return response;
-            } catch (RemoteException e1) {
-                throw new IllegalStateException(e1.getMessage());
+            } catch (RemoteException e) {
+                throw new IllegalStateException(e.getMessage());
             }
         }
     }

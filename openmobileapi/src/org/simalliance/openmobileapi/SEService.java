@@ -238,10 +238,9 @@ public class SEService {
      * Forms the map of the available readers.
      */
     private void initReadersMap() {
-        SmartcardError error = new SmartcardError();
         String[] readerNames;
         try {
-            readerNames = mSmartcardService.getReaders(error);
+            readerNames = mSmartcardService.getReaders();
         } catch (RemoteException e) {
             throw new IllegalStateException(e);
         }

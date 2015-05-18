@@ -43,8 +43,7 @@ public class Session {
     private final Reader mReader;
     private final ISmartcardServiceSession mSession;
 
-    Session(ISmartcardServiceSession session,
-            Reader reader) {
+    Session(ISmartcardServiceSession session, Reader reader) {
         mReader = reader;
         mSession = session;
     }
@@ -183,7 +182,7 @@ public class Session {
      *
      * @param aid the AID of the Applet to be selected on this channel, as a
      *            byte array, or null if no Applet is to be selected.
-     * @param P2 the P2 parameter of the SELECT APDU executed on this channel.
+     * @param p2 the P2 parameter of the SELECT APDU executed on this channel.
      * @throws IOException if there is a communication problem to the reader or
      *             the Secure Element.
      * @throws IllegalStateException if the Secure Element session is used after
@@ -199,7 +198,7 @@ public class Session {
      *             supported by the device
      * @return an instance of Channel if available or null.
      */
-    public Channel openBasicChannel(byte[] aid, Byte P2) throws IOException,
+    public Channel openBasicChannel(byte[] aid, byte p2) throws IOException,
             IllegalStateException, IllegalArgumentException, SecurityException,
             NoSuchElementException, UnsupportedOperationException {
         if (mReader.getSEService() == null || !mReader.getSEService().isConnected()) {
@@ -217,7 +216,7 @@ public class Session {
                 SmartcardError error = new SmartcardError();
                 ISmartcardServiceChannel channel = mSession.openBasicChannel(
                         aid,
-                        P2,
+                        p2,
                         mReader.getSEService().getCallback(),
                         error);
                 if (error.isSet()) {
@@ -296,7 +295,7 @@ public class Session {
      *
      * @param aid the AID of the Applet to be selected on this channel, as a
      *            byte array.
-     * @param P2 the P2 parameter of the SELECT APDU executed on this channel.
+     * @param p2 the P2 parameter of the SELECT APDU executed on this channel.
      * @throws IOException if there is a communication problem to the reader or
      *             the Secure Element.
      * @throws IllegalStateException if the Secure Element is used after being
@@ -314,7 +313,7 @@ public class Session {
      * @return an instance of Channel. Null if the Secure Element is unable to
      *         provide a new logical channel.
      */
-    public Channel openLogicalChannel(byte[] aid, Byte P2) throws IOException,
+    public Channel openLogicalChannel(byte[] aid, byte p2) throws IOException,
             IllegalStateException, IllegalArgumentException, SecurityException,
             NoSuchElementException, UnsupportedOperationException {
 
@@ -333,7 +332,7 @@ public class Session {
                 SmartcardError error = new SmartcardError();
                 ISmartcardServiceChannel channel = mSession.openLogicalChannel(
                         aid,
-                        P2,
+                        p2,
                         mReader.getSEService().getCallback(),
                         error);
                 if (error.isSet()) {
@@ -376,7 +375,6 @@ public class Session {
     public Channel openLogicalChannel(byte[] aid) throws IOException,
             IllegalStateException, IllegalArgumentException, SecurityException,
             NoSuchElementException, UnsupportedOperationException {
-
         return openLogicalChannel(aid, (byte) 0x00);
     }
 }

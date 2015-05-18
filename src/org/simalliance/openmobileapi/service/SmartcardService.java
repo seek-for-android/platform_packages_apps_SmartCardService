@@ -61,7 +61,7 @@ public final class SmartcardService extends Service {
     public IBinder onBind(Intent intent) {
         Log.v(LOG_TAG, Thread.currentThread().getName() + " smartcard service onBind");
         if ("org.simalliance.openmobileapi.BIND_SERVICE".equals(intent.getAction())) {
-            return mSmartcardBinder;
+            return new SmartcardServiceBinder();
         }
         return null;
     }
@@ -231,22 +231,14 @@ public final class SmartcardService extends Service {
         return terminals.toArray(new Terminal[terminals.size()]);
     }
 
-    // TODO: move this to an inner, named class
     /**
      * The smartcard service interface implementation.
      */
-    private final ISmartcardService.Stub mSmartcardBinder
-        = new ISmartcardService.Stub() {
+    private class SmartcardServiceBinder extends ISmartcardService.Stub {
 
         @Override
-        public String[] getReaders(SmartcardError error) throws RemoteException {
-            try {
-                return createTerminalNamesList();
-            } catch (Exception e) {
-                Log.e(SmartcardService.LOG_TAG, "Error during getReaders()", e);
-                error.set(e);
-                return null;
-            }
+        public String[] getReaders() throws RemoteException {
+            return createTerminalNamesList();
         }
 
         @Override
@@ -259,5 +251,5 @@ public final class SmartcardService extends Service {
                 return null;
             }
         }
-    };
+    }
 }

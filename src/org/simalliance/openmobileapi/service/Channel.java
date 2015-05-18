@@ -27,6 +27,7 @@ import android.util.Log;
 
 import org.simalliance.openmobileapi.service.security.ChannelAccess;
 import org.simalliance.openmobileapi.util.CommandApdu;
+import org.simalliance.openmobileapi.util.ISO7816;
 
 /**
  * Smartcard service base class for channel resources.
@@ -133,8 +134,20 @@ public class Channel implements IBinder.DeathRecipient {
             throw new NullPointerException("Command must not be null");
         }
 
-        if (command.length < 4) {
-            throw new IllegalArgumentException("Command must have at least 4 bytes");
+        // We only use this constructor to check that command is correctly formed
+        new CommandApdu(command);
+        // Check that the command is allowed as per OMAPI
+        if (((command[0] & (byte) 0x80) == 0)
+                && ((byte) (command[0] & (byte) 0x60) != (byte) 0x20)) {
+            // ISO command
+            if (command[1] == ISO7816.INS_MANAGE_CHANNEL) {
+                throw new SecurityException(
+                        "MANAGE CHANNEL command not allowed");
+            }
+            if ((command[1] == ISO7816.INS_SELECT) && (command[2] == (byte) 0x04)) {
+                throw new SecurityException(
+                        "SELECT by DF name command not allowed");
+            }
         }
 
         if (mChannelAccess == null) {
@@ -145,34 +158,12 @@ public class Channel implements IBinder.DeathRecipient {
             throw new SecurityException("Wrong Caller PID.");
         }
 
-        if (command[0] == (byte)0XFF) {
-            throw new IllegalArgumentException("CLA byte is invalid");
-        }
-
-        if ((command[1] & (byte) 0xF0) == (byte)0x60 || (command[1] & (byte) 0xF0) == (byte)0x90) {
-            throw new IllegalArgumentException("INS byte is invalid");
-        }
-
-        if (((command[0] & (byte) 0x80) == 0)
-                && ((byte) (command[0] & (byte) 0x60) != (byte) 0x20)) {
-            // ISO command
-            if (command[1] == (byte) 0x70) {
-                throw new SecurityException(
-                        "MANAGE CHANNEL command not allowed");
-            }
-            if ((command[1] == (byte) 0xA4) && (command[2] == (byte) 0x04)) {
-                throw new SecurityException(
-                        "SELECT by DF name command not allowed");
-            }
-        }
-
         // set channel number bits
         command[0] = Util.setChannelToClassByte(command[0], mChannelNumber);
 
-        CommandApdu cApdu = new CommandApdu(command);
         checkCommand(command);
 
-        return mSession.getReader().transmit(cApdu.toByteArray());
+        return mSession.getReader().transmit(command);
 
     }
 

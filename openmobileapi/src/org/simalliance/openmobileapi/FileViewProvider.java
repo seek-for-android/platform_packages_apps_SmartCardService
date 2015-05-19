@@ -1157,7 +1157,7 @@ public class FileViewProvider extends Provider {
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
             byte[] responseData = apduResponse.getData();
-            if (responseData.length > 0) {
+            if (responseData != null && responseData.length > 0) {
                 int[] recordNumbers = new int[responseData.length];
 
                 for (int i = 0; i < responseData.length; i++) {
@@ -1350,7 +1350,7 @@ public class FileViewProvider extends Provider {
         }
 
         if (data.length == 0
-                || data.length > ISO7816.MAX_COMMAND_DATA_LENGTH
+                || data.length > ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED
                 || data.length != length) {
             throw new IllegalArgumentException(
                     ErrorStrings.paramInvalidArrayLength("data"));

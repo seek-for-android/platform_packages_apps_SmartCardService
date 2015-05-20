@@ -317,7 +317,7 @@ public class AuthenticationProvider extends Provider {
         // Prepare and send the APDU
         // P1 depends on whether user wants to set a new PIN or only the
         // retry counter.
-        byte p1 = 0;
+        byte p1;
         if (newPin != null) {
             p1 = (byte) 0x00;
         } else {
@@ -460,7 +460,7 @@ public class AuthenticationProvider extends Provider {
             if (ISO7816.SW_CTR_MIN <= swValue
                     && swValue <= ISO7816.SW_CTR_MAX) {
                 // Get the last 4 bits of the SW (63CX)
-                return (int) swValue & 0x000F;
+                return swValue & 0x000F;
             } else {
                 throw new IOException(
                         ErrorStrings.unexpectedStatusWord(swValue));
@@ -512,11 +512,11 @@ public class AuthenticationProvider extends Provider {
             // Set first bit to 1 to indicate that is a local pin
             p2 = (byte) (p2 | 0x80);
         }
-        if (pin.length > ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED) {
-            throw new IllegalArgumentException("PIN too long");
-        }
         CommandApdu apdu;
         if (pin != null) {
+            if (pin.length > ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED) {
+                throw new IllegalArgumentException("PIN too long");
+            }
             apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_ENABLE_VERIF_REQ, (byte) 0x00, p2, pin);
         } else {
             apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_ENABLE_VERIF_REQ, (byte) 0x01, p2);
@@ -636,13 +636,13 @@ public class AuthenticationProvider extends Provider {
             // Set first bit to 1 to indicate that is a local pin
             p2 = (byte) (p2 | 0x80);
         }
-        if (pin.length > ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED) {
-            throw new IllegalArgumentException("PIN too long");
-        }
 
-        CommandApdu apdu = null;
+        CommandApdu apdu;
 
         if (pin != null) {
+            if (pin.length > ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED) {
+                throw new IllegalArgumentException("PIN too long");
+            }
             apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_DISABLE_VERIF_REQ, (byte) 0x00, p2, pin);
         } else {
             apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_DISABLE_VERIF_REQ, (byte) 0x01, p2);

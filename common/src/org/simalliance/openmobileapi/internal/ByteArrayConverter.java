@@ -48,7 +48,12 @@ public final class ByteArrayConverter {
         String path = "";
         for (int i = 0; i < rawPath.length; i += 2) {
             System.arraycopy(rawPath, i, buffer, 0, 2);
-            path = path.concat(byteArrayToHexString(buffer));
+            String fid = byteArrayToHexString(buffer);
+            if (fid.equalsIgnoreCase("3F00")) {
+                // MF should not be included in path
+                continue;
+            }
+            path = path.concat(fid);
             if (i != rawPath.length - 2) {
                 path = path.concat(":");
             }

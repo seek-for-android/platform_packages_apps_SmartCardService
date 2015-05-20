@@ -128,7 +128,7 @@ public class SecureStorageProvider extends Provider {
     public void create(String title, byte[] data) throws IllegalStateException,
             IllegalArgumentException, SecurityException, IOException {
 
-        int id = 0;
+        int id;
 
         if (title == null) {
             throw new IllegalArgumentException(ErrorStrings.paramNull("title"));
@@ -151,6 +151,8 @@ public class SecureStorageProvider extends Provider {
                 throw new IllegalArgumentException(
                         ErrorStrings.SES_TITLE_EXISTS);
             case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
+            // For Secure Storage, 6A 82 means PIN not verified:
+            case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             case ISO7816.SW_NOT_ENOUGH_MEMORY:
@@ -195,11 +197,6 @@ public class SecureStorageProvider extends Provider {
                     sendDeleteEntryCommand(id);
                 } catch (ProcessingException t) {
                 }
-                if (e.getSwValue() == ISO7816.
-                        SW_MEMORY_FAILURE) {
-                    throw new IllegalArgumentException(
-                            ErrorStrings.SES_CREATE_FAILED_MEMORY);
-                }
                 if (e.getSwValue() == ISO7816.SW_MEMORY_FAILURE) {
                     throw new IllegalArgumentException(
                             ErrorStrings.SES_CREATE_FAILED_MEMORY);
@@ -224,10 +221,10 @@ public class SecureStorageProvider extends Provider {
                 // Decide how many bytes will be sent in the next
                 // iteration
                 int currentBufferSize;
-                if (remainingBytes < ISO7816.MAX_COMMAND_DATA_LENGTH) {
+                if (remainingBytes < ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED) {
                     currentBufferSize = remainingBytes;
                 } else {
-                    currentBufferSize = ISO7816.MAX_COMMAND_DATA_LENGTH;
+                    currentBufferSize = ISO7816.MAX_COMMAND_DATA_LENGTH_NO_EXTENDED;
                 }
 
                 // Initialize and fill the buffer.
@@ -328,6 +325,8 @@ public class SecureStorageProvider extends Provider {
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
             case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
+            // For Secure Storage, 6A 82 means PIN not verified:
+            case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             case ISO7816.SW_REF_NOT_FOUND:
@@ -471,6 +470,8 @@ public class SecureStorageProvider extends Provider {
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
             case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
+            // For Secure Storage, 6A 82 means PIN not verified:
+            case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             case ISO7816.SW_REF_NOT_FOUND:
@@ -581,6 +582,8 @@ public class SecureStorageProvider extends Provider {
             case ISO7816.SW_REF_NOT_FOUND:
                 return false;
             case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
+            // For Secure Storage, 6A 82 means PIN not verified:
+            case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             default:
@@ -626,6 +629,8 @@ public class SecureStorageProvider extends Provider {
         } catch (ProcessingException e) {
             switch (e.getSwValue()) {
             case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
+            // For Secure Storage, 6A 82 means PIN not verified:
+            case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             case ISO7816.SW_REF_NOT_FOUND:
@@ -675,6 +680,8 @@ public class SecureStorageProvider extends Provider {
         case ISO7816.SW_MEMORY_FAILURE:
             throw new IOException(ErrorStrings.MEMORY_FAILURE);
         case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
+        // For Secure Storage, 6A 82 means PIN not verified:
+        case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
             throw new SecurityException(
                     ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
         default:
@@ -699,7 +706,7 @@ public class SecureStorageProvider extends Provider {
             IOException {
 
         // The list that will store the titles
-        ArrayList<String> titles = new ArrayList<String>();
+        ArrayList<String> titles = new ArrayList<>();
 
         boolean allEntriesHasBeenRead = false;
 
@@ -713,6 +720,8 @@ public class SecureStorageProvider extends Provider {
                 allEntriesHasBeenRead = true;
                 break;
             case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
+            // For Secure Storage, 6A 82 means PIN not verified:
+            case ISO7816.SW_FILE_OR_APP_NOT_FOUND:
                 throw new SecurityException(
                         ErrorStrings.SECURITY_STATUS_NOT_SATISFIED);
             default:
@@ -741,7 +750,7 @@ public class SecureStorageProvider extends Provider {
             }
         }
 
-        return (String[]) titles.toArray(new String[titles.size()]);
+        return titles.toArray(new String[titles.size()]);
     }
 
     /* **************************************************************** */

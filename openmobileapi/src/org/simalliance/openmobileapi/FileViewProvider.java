@@ -387,7 +387,7 @@ public class FileViewProvider extends Provider {
                     // the short EF identifier (a number from one to thirty).
                     if ((sfi[0] & (byte) 0x07) == (byte) 0x00) {
                         // Shift 3 bits to the right
-                        return (int) (sfi[0] >>> 3);
+                        return sfi[0] >>> 3;
                     } else {
                         return INFO_NOT_AVAILABLE;
                     }
@@ -658,7 +658,7 @@ public class FileViewProvider extends Provider {
                         ErrorStrings.paramNull("data"));
             }
 
-            if (data.length == 0 || data.length > ISO7816.MAX_COMMAND_DATA_LENGTH) {
+            if (data.length > ISO7816.MAX_COMMAND_DATA_LENGTH) {
                 throw new IllegalArgumentException(
                         ErrorStrings.paramInvalidArrayLength("data"));
             }
@@ -966,9 +966,10 @@ public class FileViewProvider extends Provider {
         int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
+            byte[] data = apduResponse.getData();
             return new Record(
                     recNumber,
-                    apduResponse.getData());
+                    data == null ? new byte[0] : data);
         case ISO7816.SW_COMMAND_INCOMPATIBLE:
             throw new IllegalStateException(ErrorStrings.NO_RECORD_BASED_FILE);
         case ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED:
@@ -1039,7 +1040,7 @@ public class FileViewProvider extends Provider {
         // Prepare and send the APDU
         CommandApdu apdu;
         if (rec.getNumber() == APPEND_RECORD) {
-            apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_APPEND_RECORD, (byte) 0x00, (byte) ((sfi << 3) | 0), rec.getData());
+            apdu = new CommandApdu(ISO7816.CLA_INTERINDUSTRY, ISO7816.INS_APPEND_RECORD, (byte) 0x00, (byte) (sfi << 3), rec.getData());
         } else {
             // Try to update record. If record is not found, try appending it.
             // Prepare and send the APDU
@@ -1088,12 +1089,8 @@ public class FileViewProvider extends Provider {
             // successful change of memory state, but after an internal retry
             // routine; 'X' > '0' encodes the number of retries; 'X' = '0'
             // means that no counter is provided.
-            if (ISO7816.SW_CTR_MIN <= swValue
-            && swValue <= ISO7816.SW_CTR_MAX) {
-                return;
-            } else {
-                throw new IOException(
-                        ErrorStrings.unexpectedStatusWord(swValue));
+            if (!(ISO7816.SW_CTR_MIN <= swValue && swValue <= ISO7816.SW_CTR_MAX)) {
+                throw new IOException(ErrorStrings.unexpectedStatusWord(swValue));
             }
         }
     }
@@ -1162,7 +1159,7 @@ public class FileViewProvider extends Provider {
 
                 for (int i = 0; i < responseData.length; i++) {
                     // AND with 0xFF to erase sign information.
-                    recordNumbers[i] = (byte) (responseData[i] & (byte) 0xFF);
+                    recordNumbers[i] = (byte) responseData[i];
                 }
 
                 return recordNumbers;
@@ -1279,7 +1276,8 @@ public class FileViewProvider extends Provider {
         int swValue = apduResponse.getSwValue();
         switch (swValue) {
         case ISO7816.SW_NO_FURTHER_QUALIFICATION:
-            return apduResponse.getData();
+            byte[] data = apduResponse.getData();
+            return data == null ? new byte[0] : data;
         case ISO7816.SW_COMMAND_INCOMPATIBLE:
             // Not a binary file
             throw new IllegalStateException(

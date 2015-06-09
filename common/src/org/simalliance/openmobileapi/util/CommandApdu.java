@@ -356,6 +356,15 @@ public class CommandApdu {
         return array;
     }
 
+    public CommandApdu cloneWithLe(int le) {
+        if (mData == null) {
+            // Original APDU was Case 1 or Case 2
+            return new CommandApdu(mCla, mIns, mP1, mP2, (byte) le);
+        } else {
+            // Original APDU was case 3 or 4
+            return new CommandApdu(mCla, mIns, mP1, mP2, mData, (byte) le);
+        }
+    }
 
     /**
      * Private method - Set CLA byte and check if it is a valid value or not.

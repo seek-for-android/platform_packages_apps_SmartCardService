@@ -226,7 +226,7 @@ public class Terminal {
         }
 
         synchronized (mLock) {
-            if(!mAccessControlEnforcer.isInitialized()) {
+            if (mAccessControlEnforcer == null || !mAccessControlEnforcer.isInitialized()) {
                 initializeAccessControl(false);
             }
             Session session = new Session(this, mContext);

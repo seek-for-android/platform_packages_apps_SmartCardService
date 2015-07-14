@@ -167,16 +167,7 @@ public final class SmartcardService extends Service {
             try {
                 // Get terminal type
                 String packageName = info.serviceInfo.applicationInfo.packageName;
-                String sourceDir = getPackageManager().getApplicationInfo(packageName, 0).sourceDir;
-                DexClassLoader cl = new DexClassLoader(
-                            sourceDir,
-                            getCacheDir().getAbsolutePath(),
-                            null,
-                            ClassLoader.getSystemClassLoader().getParent());
-                String terminalType = (String) cl
-                        .loadClass(info.serviceInfo.name)
-                        .getMethod("getType", (Class<?>[]) null)
-                        .invoke(null, (Object[]) null);
+                String terminalType = (String) info.loadLabel(pm);
                 if (!isValidTerminal(packageName, terminalType)) {
                     Log.w(LOG_TAG, "Invalid Terminal of type " + terminalType + ", not added");
                     continue;

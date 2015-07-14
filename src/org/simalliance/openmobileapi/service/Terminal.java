@@ -145,6 +145,9 @@ public class Terminal {
                     ignore);
             return;
         }
+        if (action == null) {
+            return;
+        }
         final String seStateChangedAction = action;
         IntentFilter intentFilter = new IntentFilter(seStateChangedAction);
         mSEReceiver = new BroadcastReceiver() {

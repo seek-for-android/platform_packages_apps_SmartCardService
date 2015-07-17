@@ -21,6 +21,7 @@ package org.simalliance.openmobileapi.service;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Build;
@@ -121,31 +122,42 @@ public final class SmartcardService extends Service {
 
     /**
      * Checks if a terminal is valid or not. The policy is the following:
+     * - Terminal must require the org.simalliance.openmobileapi.BIND_TERMINAL permission. This is
+     *   to make sure that only SmartcardService can bind to it, so third-party apps cannot bypass
+     *   SmartcardService.
      * - If terminal type is SIM, eSE or SD (i.e., is a "system" terminal), it must declare the
-     *   org.simalliance.openmobileapi.SYSTEM_TERMINAL permission.
-     * - If terminal type is another one, there is no requirement.
+     *   org.simalliance.openmobileapi.SYSTEM_TERMINAL permission. This is to avoid that a malware
+     *   app can impersonate a system terminal.
      *
-     * @param packageName The package name of the terminal.
-     * @param terminalType The type of the terminal.
+     * @param terminalType The type of the terminal being used.
+     * @param resolveInfo The information we have about the terminal.
      *
      * @return True if the terminal is valid, false otherwise.
      *
      * @throws PackageManager.NameNotFoundException If the package name could not be located.
      */
-    private boolean isValidTerminal(String packageName, String terminalType)
+    private boolean isValidTerminal(String terminalType, ResolveInfo resolveInfo)
             throws PackageManager.NameNotFoundException {
-        Log.d(LOG_TAG, "Check if "+ terminalType + " is a valid Terminal");
+        // Get terminal type
+        String packageName = resolveInfo.serviceInfo.applicationInfo.packageName;
+        Log.d(LOG_TAG, "Check if "+ packageName + " contains a valid Terminal");
+        PackageInfo packageInfo = getPackageManager().getPackageInfo(
+                                                    packageName, PackageManager.GET_PERMISSIONS);
+        // Check that terminal service requires the appropriate permission
+        if (!"org.simalliance.openmobileapi.BIND_TERMINAL".equals(resolveInfo.serviceInfo.permission)) {
+            Log.w(LOG_TAG, "Terminal does not require BIND_TERMINAL permission");
+            return false;
+        }
         if ("SIM".equalsIgnoreCase(terminalType)
                 || "eSE".equalsIgnoreCase(terminalType)
                 || "SD".equalsIgnoreCase(terminalType)) {
-            String[] permissions = getPackageManager()
-                                    .getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
-                                    .requestedPermissions;
-            for(String permission : permissions) {
+            String[] requestedPermissions = packageInfo.requestedPermissions;
+            for(String permission : requestedPermissions) {
                 if("org.simalliance.openmobileapi.SYSTEM_TERMINAL".equals(permission)) {
                     return true;
                 }
             }
+            Log.w(LOG_TAG, terminalType + "terminal does not declare SYSTEM_TERMINAL permission");
             return false;
         }
         return true;
@@ -165,10 +177,8 @@ public final class SmartcardService extends Service {
         Log.d(LOG_TAG, "Found " + terminallist.size() + " terminals.");
         for (ResolveInfo info : terminallist) {
             try {
-                // Get terminal type
-                String packageName = info.serviceInfo.applicationInfo.packageName;
                 String terminalType = (String) info.loadLabel(pm);
-                if (!isValidTerminal(packageName, terminalType)) {
+                if (!isValidTerminal(terminalType, info)) {
                     Log.w(LOG_TAG, "Invalid Terminal of type " + terminalType + ", not added");
                     continue;
                 }

@@ -28,13 +28,6 @@ import org.simalliance.openmobileapi.service.OpenLogicalChannelResponse;
 interface ITerminalService {
 
     /**
-     * GetType of the terminal.
-     *
-     * @return the name of the type of Terminal.
-     */
-    String getType();
-
-    /**
      * Implementation of the MANAGE CHANNEL open and SELECT commands.
      *
      * @param aid The aid of the applet to be selected.

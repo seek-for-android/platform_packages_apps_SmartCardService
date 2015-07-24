@@ -157,28 +157,28 @@ public class Session {
      * transport API should guarantee that the openBasicChannel(null) command will return
      * null until a reset occurs.
      * With previous release (V2.05) it was not possible to set P2 value, this value was always
-     * set to ‘00’.Except for specific needs it is recommended to keep P2 to ‘00’. It is
+     * set to '00'.Except for specific needs it is recommended to keep P2 to '00'. It is
      * recommended that the device allows all values for P2, however only the following values
-     * are mandatory: ‘00’, ‘04’, ‘08’, ‘0C’(as defined in [2])
+     * are mandatory: '00', '04', '08', '0C'(as defined in [2])
      * The implementation of the underlying SELECT command within this method shall be
      * based on ISO 7816-4 with following options:
      * <ul>
-     * <li>CLA = ‘00’</li>
+     * <li>CLA = '00'</li>
      * <li>INS = 'A4'</li>
-     * <li>P1 = ’04’ (Select by DF name/application identifier)</li>
+     * <li>P1 = '04' (Select by DF name/application identifier)</li>
      * </ul>
      *
      * The select response data can be retrieved with byte[] getSelectResponse().
      * The API shall handle received status word as follow. If the status word indicates that the
-     * Secure Element was able to open a channel (e.g. status word ‘90 00’ or status words
-     * referencing a warning in ISO-7816-4: ’62 XX” or “63 XX’) the API shall keep the
+     * Secure Element was able to open a channel (e.g. status word '90 00' or status words
+     * referencing a warning in ISO-7816-4: '62 XX' or '63 XX') the API shall keep the
      * channel opened and the next getSelectResponse() shall return the received status
      * word.
      * Other received status codes indicating that the Secure Element was able not to open a
      * channel shall be considered as an error and the corresponding channel shall not be
      * opened.
      * The function without P2 as parameter is provided for backwards compatibility and will
-     * fall back to a select command with P2=’00’.
+     * fall back to a select command with P2='00'.
      *
      * @param aid the AID of the Applet to be selected on this channel, as a
      *            byte array, or null if no Applet is to be selected.
@@ -267,22 +267,22 @@ public class Session {
      * channel, the default Applet is used. It's up to the Secure Element to choose which
      * logical channel will be used.
      * With previous release (V2.05) it was not possible to set P2 value, this value was always
-     * set to ‘00’.Except for specific needs it is recommended to keep P2 to ‘00’. It is
+     * set to '00'.Except for specific needs it is recommended to keep P2 to '00'. It is
      * recommended that the device allows all values for P2, however only the following values
-     * are mandatory: ‘00’, ‘04’, ‘08’, ‘0C’(as defined in [2])
+     * are mandatory: '00', '04', '08', '0C'(as defined in [2])
      * The implementation of the underlying SELECT command within this method shall be
      * based on ISO 7816-4 with following options:
      *
      * <ul>
-     * <li>CLA = ‘01’ to '03', '40 to 4F'</li>
+     * <li>CLA = '01' to '03', '40 to 4F'</li>
      * <li>INS = 'A4'</li>
-     * <li>P1 = ’04’ (Select by DF name/application identifier)</li>
+     * <li>P1 = '04' (Select by DF name/application identifier)</li>
      * </ul>
      *
      * The select response data can be retrieved with byte[] getSelectResponse().
      * The API shall handle received status word as follow. If the status word indicates that the
-     * Secure Element was able to open a channel (e.g. status word ‘90 00’ or status words
-     * referencing a warning in ISO-7816-4: ’62 XX” or “63 XX’) the API shall keep the
+     * Secure Element was able to open a channel (e.g. status word '90 00' or status words
+     * referencing a warning in ISO-7816-4: '62 XX' or '63 XX') the API shall keep the
      * channel opened and the next getSelectResponse() shall return the received status
      * word.
      * Other received status codes indicating that the Secure Element was able not to open a

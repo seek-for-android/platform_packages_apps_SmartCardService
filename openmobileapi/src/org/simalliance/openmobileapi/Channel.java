@@ -131,9 +131,9 @@ public class Channel {
      * inside the API or the underlying implementation.<br>
      * The transmit method shall support extended length APDU commands independently of
      * the coding within the ATR.<br>
-     * For status word ’61 XX’ the API or underlying implementation shall issue a GET
+     * For status word '61 XX' the API or underlying implementation shall issue a GET
      * RESPONSE command as specified by ISO 7816-4 standard with LE=XX; for the status
-     * word ‘6C XX’, the API or underlying implementation shall reissue the input command
+     * word '6C XX', the API or underlying implementation shall reissue the input command
      * with LE=XX. For other status words, the API (or underlying implementation) shall return
      * the complete response including data and status word to the device application. The API
      * (or underlying implementation) shall not handle internally the received status words. The
@@ -243,7 +243,7 @@ public class Channel {
      * The implementation of the underlying SELECT command within this method shall use
      * the same values as the corresponding openBasicChannel(byte[] aid) or
      * openLogicalChannel(byte[] aid) command with the option: <br>
-     * P2=’02’ (Next occurrence) <br>
+     * P2='02' (Next occurrence) <br>
      * The select response stored in the Channel object shall be updated with the APDU
      * response of the SELECT command.
 

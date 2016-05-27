@@ -107,9 +107,8 @@ public class AccessRuleCache {
                 ca.setApduAccess(channelAccess.getApduAccess());
             }
 
-
-            // put APDU filter together if resulting APDU access is allowed.
-            if( ca.getApduAccess() == ChannelAccess.ACCESS.ALLOWED ){
+            // put APDU filter together if resulting APDU access is not denied.
+            if (ca.getApduAccess() != ChannelAccess.ACCESS.DENIED) {
                 if( channelAccess.isUseApduFilter() ){
                     ca.setUseApduFilter(true);
                     ApduFilter[] filter = ca.getApduFilter();

@@ -80,6 +80,9 @@ public class NFC_AR_DO extends BerTlv {
 		if( getValueLength() != 1 ){
 			throw new ParserException( "Invalid length of NFC-AR-DO!" );
 		}
+        if ((data[index] != 0x00) && (data[index] != 0x01)) {
+            throw new ParserException("Invalid data for NFC-AR-DO!");
+        }
 		mNfcAllowed = (data[index] == 0x01);
 	}
 	

@@ -105,6 +105,9 @@ public class APDU_AR_DO extends BerTlv {
 		// or
 		// it contains APDU filter (APDUHeader | FilterMask) which should have length n*8.
 		if( getValueLength() == 1 ){
+            if ((data[index] != 0x00) && (data[index] != 0x01)) {
+                throw new ParserException("Invalid data for APDU-AR-DO!");
+            }
 			mApduAllowed = (data[index] == 0x01);
 		} else if(getValueLength() % 8 == 0 ) {
 			mApduAllowed = true;

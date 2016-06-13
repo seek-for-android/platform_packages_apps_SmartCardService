@@ -159,10 +159,10 @@ public class Channel implements IBinder.DeathRecipient {
             throw new SecurityException("Wrong Caller PID.");
         }
 
+        checkCommand(command);
+
         // set channel number bits
         command[0] = Util.setChannelToClassByte(command[0], mChannelNumber);
-
-        checkCommand(command);
 
         return mSession.getReader().transmit(command);
 

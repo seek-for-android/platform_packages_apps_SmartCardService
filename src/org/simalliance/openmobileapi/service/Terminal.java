@@ -36,7 +36,7 @@ import java.io.PrintWriter;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
-
+import java.util.concurrent.atomic.AtomicInteger;
 
 import android.content.pm.PackageManager;
 import android.util.Log;
@@ -61,6 +61,8 @@ public class Terminal {
     private final ArrayList<Session> mSessions = new ArrayList<>();
 
     private final Object mLock = new Object();
+
+    private AtomicInteger mIdGenerator = new AtomicInteger(0);
 
     /* Async task */
     InitialiseTask mInitialiseTask;
@@ -223,7 +225,7 @@ public class Terminal {
         mContext.unbindService(mTerminalConnection);
     }
 
-    public ISmartcardServiceSession openSession() throws Exception {
+    public ISmartcardServiceSession openSession(int clientId) throws Exception {
         if (!isCardPresent()) {
             throw new IOException("Secure Element is not presented.");
         }
@@ -232,7 +234,7 @@ public class Terminal {
             if (mAccessControlEnforcer == null || !mAccessControlEnforcer.isInitialized()) {
                 initializeAccessControl(false);
             }
-            Session session = new Session(this, mContext);
+            Session session = new Session(this, clientId, mContext);
             mSessions.add(session);
             return session.getBinder();
         }
@@ -250,6 +252,19 @@ public class Terminal {
     private synchronized void closeSessions() throws Exception {
         while (mSessions.size() > 0) {
             mSessions.get(0).close();
+        }
+    }
+
+    private synchronized void closeSessions(int clientId) throws Exception {
+        int count = mSessions.size();
+        int index = 0;
+
+        for (int i = 0; i < count; i++) {
+            if (clientId == mSessions.get(index).getClientId()) {
+                mSessions.get(index).close();
+            } else {
+                index++;
+            }
         }
     }
 
@@ -558,6 +573,12 @@ public class Terminal {
      */
     private class SmartcardServiceReader extends ISmartcardServiceReader.Stub {
 
+        private int mId;
+
+        public SmartcardServiceReader() {
+            mId = mIdGenerator.getAndIncrement();
+        }
+
         @Override
         public boolean isSecureElementPresent() throws RemoteException {
             return Terminal.this.isCardPresent();
@@ -566,7 +587,7 @@ public class Terminal {
         @Override
         public ISmartcardServiceSession openSession(SmartcardError error) throws RemoteException {
             try {
-                return Terminal.this.openSession();
+                return Terminal.this.openSession(mId);
             } catch (Exception e) {
                 Log.e(SmartcardService.LOG_TAG, "Error during openSession()", e);
                 error.set(e);
@@ -577,7 +598,7 @@ public class Terminal {
         @Override
         public void closeSessions(SmartcardError error) throws RemoteException {
             try {
-                Terminal.this.closeSessions();
+                Terminal.this.closeSessions(mId);
             } catch (Exception e) {
                 Log.e(SmartcardService.LOG_TAG, "Error during closeSessions()", e);
                 error.set(e);

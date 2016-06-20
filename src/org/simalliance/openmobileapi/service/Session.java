@@ -41,6 +41,8 @@ public class Session {
     private final Terminal mReader;
     private Context mContext;
     private boolean mIsClosed;
+    private int mClientId;
+
     /**
      * List of open channels in use by this client.
      */
@@ -48,8 +50,9 @@ public class Session {
 
     private final Object mLock = new Object();
 
-    public Session(Terminal reader, Context context) {
+    public Session(Terminal reader, int clientId, Context context) {
         mReader = reader;
+        mClientId = clientId;
         mIsClosed = false;
         mContext = context;
     }
@@ -60,6 +63,10 @@ public class Session {
 
     public Terminal getReader() {
         return mReader;
+    }
+
+    public int getClientId() {
+        return mClientId;
     }
 
     public byte[] getAtr() throws RemoteException {

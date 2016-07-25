@@ -86,7 +86,7 @@ public class Channel {
     public boolean isClosed() {
         if (mSession.getReader().getSEService() == null
                 || !mSession.getReader().getSEService().isConnected()) {
-            throw new IllegalStateException("service not connected to system");
+            return true;
         }
         if (mChannel == null) {
             throw new IllegalStateException("channel must not be null");
